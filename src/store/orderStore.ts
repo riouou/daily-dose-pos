@@ -100,9 +100,7 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         set({ currentOrder: [] });
         get().fetchOrders(); // Refresh orders
       }
-      import { toast } from 'sonner';
 
-      // ...
 
     } catch (error) {
       console.error('Failed to submit order:', error);
