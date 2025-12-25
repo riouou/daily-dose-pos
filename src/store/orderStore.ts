@@ -80,35 +80,68 @@ export const useOrderStore = create<OrderState>((set, get) => ({
     const { currentOrder } = get();
     if (currentOrder.length === 0) return;
 
-    const newOrder = {
+    // 1. Snapshot state for rollback
+    const previousOrder = [...currentOrder];
+
+    // 2. Optimistic Update: Clear UI immediately
+    set({ currentOrder: [] });
+    toast.success('Order placed!'); // Immediate feedback
+
+    // 3. Prepare payload
+    const newOrderPayload = {
       id: `ORD-${Date.now().toString(36).toUpperCase()}`,
-      items: [...currentOrder],
-      total: get().getOrderTotal(),
+      items: previousOrder,
+      total: 0, // Will be recalculated
       status: 'new',
       createdAt: new Date(),
       tableNumber,
     };
 
+    // Recalculate total since currentOrder is now empty
+    newOrderPayload.total = previousOrder.reduce(
+      (sum, item) => sum + item.menuItem.price * item.quantity,
+      0
+    );
+
     try {
       const response = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newOrder),
+        body: JSON.stringify(newOrderPayload),
       });
 
       if (response.ok) {
-        set({ currentOrder: [] });
-        get().fetchOrders(); // Refresh orders
+        const createdOrder = await response.json();
+        createdOrder.createdAt = new Date(createdOrder.createdAt);
+
+        // Add the confirmed order to the history list
+        set((state) => ({
+          orders: [createdOrder, ...state.orders]
+        }));
+      } else {
+        throw new Error(response.statusText);
       }
-
-
     } catch (error) {
       console.error('Failed to submit order:', error);
-      toast.error('Failed to submit order. Please check your connection.');
+      // 4. Rollback on failure
+      set({ currentOrder: previousOrder });
+      toast.error('Failed to submit order. Please try again.');
     }
   },
 
   updateOrderStatus: async (orderId: string, status: Order['status']) => {
+    // 1. Optimistic Update
+    const previousOrders = get().orders;
+    set((state) => ({
+      orders: state.orders.map(o =>
+        o.id === orderId ? { ...o, status } : o
+      )
+    }));
+
+    if (status === 'completed') {
+      toast.success('Order completed!');
+    }
+
     try {
       const response = await fetch(`${API_URL}/api/orders/${orderId}/status`, {
         method: 'PATCH',
@@ -116,11 +149,21 @@ export const useOrderStore = create<OrderState>((set, get) => ({
         body: JSON.stringify({ status }),
       });
 
-      if (response.ok) {
-        get().fetchOrders(); // Refresh orders
+      if (!response.ok) {
+        if (response.status === 404) {
+          // Order missing on server. Force sync source of truth.
+          await get().fetchOrders();
+          toast.error('Order missing on server. Syncing...');
+        } else {
+          // Other error, revert
+          set({ orders: previousOrders });
+          toast.error('Failed to update status. Reverting changes.');
+        }
       }
     } catch (error) {
       console.error('Failed to update order status:', error);
+      set({ orders: previousOrders });
+      toast.error('Connection error. Reverting changes.');
     }
   },
 

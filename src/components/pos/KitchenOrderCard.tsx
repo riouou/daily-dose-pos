@@ -1,4 +1,4 @@
-import { Clock, ChefHat, CheckCircle2 } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle2, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Order } from '@/types/pos';
 import { useOrderStore } from '@/store/orderStore';
@@ -49,6 +49,8 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
       updateOrderStatus(order.id, 'preparing');
     } else if (order.status === 'preparing') {
       updateOrderStatus(order.id, 'ready');
+    } else if (order.status === 'ready') {
+      updateOrderStatus(order.id, 'completed');
     }
   };
 
@@ -84,7 +86,7 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
         ))}
       </div>
 
-      {order.status !== 'ready' && (
+      {order.status !== 'ready' && order.status !== 'completed' && (
         <Button
           variant={order.status === 'new' ? 'warning' : 'success'}
           size="lg"
@@ -96,9 +98,20 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
       )}
 
       {order.status === 'ready' && (
-        <div className="flex items-center justify-center gap-2 py-2 text-success font-semibold">
-          <CheckCircle2 className="w-5 h-5" />
-          Ready for Pickup
+        <Button
+          variant="outline"
+          size="lg"
+          className="w-full border-success text-success hover:bg-success hover:text-white"
+          onClick={handleNextStatus}
+        >
+          Complete Order
+        </Button>
+      )}
+
+      {order.status === 'completed' && (
+        <div className="flex items-center justify-center gap-2 py-2 text-muted-foreground font-semibold">
+          <Archive className="w-5 h-5" />
+          Order Completed
         </div>
       )}
     </div>

@@ -14,7 +14,7 @@ export default function KitchenPage() {
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
-  const activeOrders = orders.filter((o) => o.status !== 'ready');
+  const activeOrders = orders.filter((o) => o.status === 'new' || o.status === 'preparing');
   const readyOrders = orders.filter((o) => o.status === 'ready');
 
   return (
@@ -37,7 +37,7 @@ export default function KitchenPage() {
                     <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
                     Active Orders ({activeOrders.length})
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {activeOrders.map((order) => (
                       <KitchenOrderCard key={order.id} order={order} />
                     ))}
@@ -51,7 +51,7 @@ export default function KitchenPage() {
                     <span className="w-2 h-2 rounded-full bg-success" />
                     Ready for Pickup ({readyOrders.length})
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {readyOrders.map((order) => (
                       <KitchenOrderCard key={order.id} order={order} />
                     ))}

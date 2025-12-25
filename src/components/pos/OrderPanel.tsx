@@ -17,7 +17,7 @@ export function OrderPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-card rounded-xl border border-border shadow-sm">
+    <div className="flex flex-col h-full bg-card rounded-xl border border-border shadow-sm overflow-hidden">
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2">
           <ShoppingCart className="w-5 h-5 text-primary" />

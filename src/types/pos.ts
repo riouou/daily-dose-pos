@@ -15,7 +15,7 @@ export interface Order {
   id: string;
   items: OrderItem[];
   total: number;
-  status: 'new' | 'preparing' | 'ready';
+  status: 'new' | 'preparing' | 'ready' | 'completed';
   createdAt: Date;
   tableNumber?: number;
 }
