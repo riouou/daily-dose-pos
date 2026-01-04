@@ -71,6 +71,9 @@ const initDb = async () => {
 
             // Add is_test to orders for testing mode
             await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_test BOOLEAN DEFAULT FALSE`);
+            // Add created_at to categories for consistent ordering if needed?
+            // Add sort_order to categories
+            await query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0`);
         } catch (e) { /* ignore if exists */ }
 
         console.log('Sessions table ensured');
@@ -128,7 +131,7 @@ let MAINTENANCE_MODE = false;
 
 app.get('/api/menu', async (req, res) => {
     try {
-        const { rows: categories } = await query('SELECT name FROM categories ORDER BY name');
+        const { rows: categories } = await query('SELECT name FROM categories ORDER BY sort_order ASC, name ASC');
         // Filter out deleted items
         const { rows: items } = await query('SELECT * FROM menu_items WHERE deleted = FALSE OR deleted IS NULL ORDER BY category, name');
 
@@ -241,8 +244,12 @@ app.delete('/api/menu/items/:id', async (req, res) => {
 app.post('/api/menu/categories', async (req, res) => {
     const { category } = req.body;
     try {
-        await query('INSERT INTO categories (name) VALUES ($1) ON CONFLICT DO NOTHING', [category]);
-        const { rows } = await query('SELECT name FROM categories ORDER BY name');
+        // Get max sort_order
+        const { rows: maxRows } = await query('SELECT MAX(sort_order) as max_order FROM categories');
+        const nextOrder = (maxRows[0].max_order || 0) + 1;
+
+        await query('INSERT INTO categories (name, sort_order) VALUES ($1, $2) ON CONFLICT DO NOTHING', [category, nextOrder]);
+        const { rows } = await query('SELECT name FROM categories ORDER BY sort_order ASC, name ASC');
         res.json(rows.map(c => c.name));
         io.emit('menu:update');
     } catch (err) {
@@ -263,6 +270,35 @@ app.delete('/api/menu/categories/:name', async (req, res) => {
     } catch (err) {
         console.error('Error deleting category:', err);
         res.status(500).json({ error: err.message || 'Failed to delete category' });
+    }
+});
+
+app.put('/api/menu/categories/reorder', async (req, res) => {
+    const { categories } = req.body; // Expects array of strings ['Cat1', 'Cat2', ...]
+    if (!Array.isArray(categories)) return res.status(400).json({ error: 'Invalid categories array' });
+
+    try {
+        const client = await getClient();
+        try {
+            await client.query('BEGIN');
+            // Update each category's sort_order based on index
+            for (let i = 0; i < categories.length; i++) {
+                await client.query('UPDATE categories SET sort_order = $1 WHERE name = $2', [i, categories[i]]);
+            }
+            await client.query('COMMIT');
+
+            const { rows } = await client.query('SELECT name FROM categories ORDER BY sort_order ASC, name ASC');
+            res.json(rows.map(c => c.name));
+            io.emit('menu:update');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('Error reordering categories:', err);
+        res.status(500).json({ error: 'Failed to reorder categories' });
     }
 });
 

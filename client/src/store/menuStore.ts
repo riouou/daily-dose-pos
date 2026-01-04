@@ -14,6 +14,7 @@ interface MenuState {
     deleteMenuItem: (id: string) => Promise<void>;
     addCategory: (category: string) => Promise<void>;
     deleteCategory: (category: string) => Promise<void>;
+    reorderCategories: (categories: string[]) => Promise<void>;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -135,6 +136,28 @@ export const useMenuStore = create<MenuState>((set, get) => ({
         } catch (error) {
             console.error(error);
             toast.error('Failed to delete category');
+        }
+    },
+
+    reorderCategories: async (categories) => {
+        // Optimistic update
+        set({ categories });
+
+        try {
+            const res = await fetchWithRetry(`${API_URL}/api/menu/categories/reorder`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ categories }),
+            });
+
+            if (!res.ok) {
+                // Revert on failure (fetch actual state)
+                await get().fetchMenu();
+                throw new Error('Failed to save order');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to reorder categories');
         }
     }
 }));

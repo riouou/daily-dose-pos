@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit } from "lucide-react";
+import { Plus, Trash2, Edit, ArrowUp, ArrowDown } from "lucide-react";
 import { useMenuStore } from '@/store/menuStore';
 import { MenuItem } from '@/types/pos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -24,7 +24,7 @@ import {
 import { toast } from 'sonner';
 
 export function MenuManagement() {
-    const { items: menuItems, categories, addMenuItem, updateMenuItem, deleteMenuItem, addCategory, deleteCategory } = useMenuStore();
+    const { items: menuItems, categories, addMenuItem, updateMenuItem, deleteMenuItem, addCategory, deleteCategory, reorderCategories } = useMenuStore();
     const [newCategory, setNewCategory] = useState('');
     const [isItemDialogOpen, setIsItemDialogOpen] = useState(false);
     const [currentItem, setCurrentItem] = useState<Partial<MenuItem>>({ name: '', price: 0, category: 'Basic', emoji: '', flavors: [] });
@@ -55,6 +55,18 @@ export function MenuManagement() {
     const handleRemoveFlavor = (flavor: string) => {
         const currentFlavors = currentItem.flavors || [];
         setCurrentItem({ ...currentItem, flavors: currentFlavors.filter(f => f !== flavor) });
+    };
+
+    const moveCategory = (index: number, direction: 'up' | 'down') => {
+        const newCategories = [...categories];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+        if (targetIndex >= 0 && targetIndex < newCategories.length) {
+            // Swap
+            [newCategories[index], newCategories[targetIndex]] = [newCategories[targetIndex], newCategories[index]];
+            // Update store/server
+            reorderCategories(newCategories);
+        }
     };
 
     const handleSaveItem = async () => {
@@ -119,20 +131,42 @@ export function MenuManagement() {
                         </Button>
                     </div>
                     <div className="space-y-2">
-                        {categories.map(cat => (
-                            <div key={cat} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md">
+                        {categories.map((cat, index) => (
+                            <div key={cat} className="flex items-center justify-between p-2 bg-secondary/50 rounded-md group">
                                 <span className="font-medium text-sm">{cat}</span>
-                                {cat !== 'All' && (
+                                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
                                     <Button
                                         variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                                        onClick={() => setCategoryToDelete(cat)}
-                                        aria-label={`Delete ${cat} category`}
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        disabled={index === 0}
+                                        onClick={() => moveCategory(index, 'up')}
+                                        title="Move Up"
                                     >
-                                        <Trash2 className="h-4 w-4" />
+                                        <ArrowUp className="h-3 w-3" />
                                     </Button>
-                                )}
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6"
+                                        disabled={index === categories.length - 1}
+                                        onClick={() => moveCategory(index, 'down')}
+                                        title="Move Down"
+                                    >
+                                        <ArrowDown className="h-3 w-3" />
+                                    </Button>
+                                    {cat !== 'All' && (
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-destructive hover:bg-destructive/10 ml-1"
+                                            onClick={() => setCategoryToDelete(cat)}
+                                            aria-label={`Delete ${cat} category`}
+                                        >
+                                            <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         ))}
                     </div>
