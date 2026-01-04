@@ -348,6 +348,8 @@ app.post('/api/orders', async (req, res) => {
         // Emit new order - client should maybe visualize test orders differently?
         io.emit('order:new', finalOrder);
 
+        invalidateAnalyticsCache(); // Invalidate cache on new order
+
         // If in test mode, maybe warn admins?
         if (TEST_MODE) {
             io.emit('console:log', { message: `[TEST] New Order placed: ${newOrder.id}`, type: 'warning' });
@@ -378,6 +380,7 @@ app.patch('/api/orders/:id/status', async (req, res) => {
         res.json(updatedOrder);
 
         io.emit('order:update', updatedOrder);
+        invalidateAnalyticsCache(); // Invalidate on status change
     } catch (err) {
         console.error('Error updating order status:', err);
         res.status(500).json({ error: 'Failed to update status' });
@@ -437,6 +440,8 @@ app.post('/api/admin/close-day', async (req, res) => {
                 totalSales: parseFloat(todayMetrics[0].total_sales)
             }
         });
+
+        invalidateAnalyticsCache(); // Invalidate on close day
 
     } catch (err) {
         console.error('Error closing day:', err);
@@ -583,6 +588,11 @@ app.get('/api/admin/history/:id', async (req, res) => {
 // Simple in-memory cache for analytics
 const analyticsCache = new Map(); // Key: period, Value: { data, timestamp }
 const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+const invalidateAnalyticsCache = () => {
+    analyticsCache.clear();
+    // console.log('Analytics cache cleared');
+};
 
 app.get('/api/admin/analytics', async (req, res) => {
     const { period } = req.query;
@@ -735,6 +745,7 @@ app.post('/api/admin/command', async (req, res) => {
                 if (rowCount === 0) return res.json([log(`Order ${orderId} not found`, 'error')]);
 
                 io.emit('order:update', { id: orderId, status: 'voided' }); // Simplified packet just to trigger refresh
+                invalidateAnalyticsCache();
                 return res.json([log(`Order ${orderId} has been voided.`, 'success')]);
 
             case 'delete-day':
@@ -758,6 +769,9 @@ app.post('/api/admin/command', async (req, res) => {
                     [targetDate]
                 );
 
+                invalidateAnalyticsCache();
+                return res.json([log(`Deleted ${deletedOrders} orders for ${targetDate}`, 'success')]);
+
             case 'delete-analytics':
                 if (args[0] !== 'CONFIRM') return res.json([log('To delete all analytics, type: delete-analytics CONFIRM', 'error')]);
 
@@ -766,6 +780,7 @@ app.post('/api/admin/command', async (req, res) => {
                 await query('TRUNCATE TABLE sessions CASCADE');
 
                 io.emit('order:refresh'); // Refresh clients
+                invalidateAnalyticsCache();
                 return res.json([log('ANALYTICS DELETED. All order history wiped.', 'success')]);
 
             case 'maintenance':
@@ -858,6 +873,7 @@ app.post('/api/admin/command', async (req, res) => {
                         seeded++;
                     }
                     io.emit('order:refresh');
+                    invalidateAnalyticsCache();
                     return res.json([
                         log(`Seeded ${seeded} orders.`, 'success'),
                         log(isSilent ? 'Hidden from analytics (is_test=true)' : 'Visible in Analytics. Run delete-analytics to wipe.', 'info')
@@ -871,6 +887,7 @@ app.post('/api/admin/command', async (req, res) => {
                 if (args[0] !== 'CONFIRM') return res.json([log('To wipe all data, type: reset-data CONFIRM', 'error')]);
 
                 io.emit('order:refresh');
+                invalidateAnalyticsCache();
                 return res.json([log('SYSTEM RESET. ALL DATA WIPED.', 'error')]);
 
             case 'broadcast':
