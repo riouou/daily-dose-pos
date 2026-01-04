@@ -69,11 +69,26 @@ const initDb = async () => {
             // Backwards compatibility for legacy code (soft deprecated)
             await query(`ALTER TABLE order_items ADD COLUMN IF NOT EXISTS selected_flavor VARCHAR(255)`);
 
-            // Add is_test to orders for testing mode
-            await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_test BOOLEAN DEFAULT FALSE`);
             // Add created_at to categories for consistent ordering if needed?
             // Add sort_order to categories
             await query(`ALTER TABLE categories ADD COLUMN IF NOT EXISTS sort_order INTEGER DEFAULT 0`);
+
+            // Add payment fields to orders
+            await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50)`);
+            await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) DEFAULT 'paid'`);
+            await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS amount_tendered DECIMAL(10, 2)`);
+            await query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS change_amount DECIMAL(10, 2)`);
+
+            // Create Settings Table
+            await query(`
+                CREATE TABLE IF NOT EXISTS settings (
+                    key VARCHAR(255) PRIMARY KEY,
+                    value TEXT
+                )
+            `);
+            // Seed default theme if not exists
+            await query(`INSERT INTO settings (key, value) VALUES ('theme', 'dark') ON CONFLICT DO NOTHING`);
+
         } catch (e) { /* ignore if exists */ }
 
         console.log('Sessions table ensured');
@@ -264,12 +279,35 @@ app.delete('/api/menu/categories/:name', async (req, res) => {
 
     try {
         await query('DELETE FROM categories WHERE name = $1', [name]);
-        const { rows } = await query('SELECT name FROM categories ORDER BY name');
+        const { rows } = await query('SELECT name FROM categories ORDER BY sort_order ASC, name ASC');
         res.json(rows.map(c => c.name));
         io.emit('menu:update');
     } catch (err) {
         console.error('Error deleting category:', err);
         res.status(500).json({ error: err.message || 'Failed to delete category' });
+    }
+});
+
+// Settings API
+app.get('/api/settings', async (req, res) => {
+    try {
+        const { rows } = await query('SELECT * FROM settings');
+        const settings = {};
+        rows.forEach(r => settings[r.key] = r.value);
+        res.json(settings);
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+});
+
+app.post('/api/settings', async (req, res) => {
+    const { key, value } = req.body;
+    try {
+        await query('INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', [key, value]);
+        io.emit('settings:update', { key, value });
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to save setting' });
     }
 });
 
@@ -319,9 +357,16 @@ app.get('/api/orders', async (req, res) => {
 });
 
 app.post('/api/orders', async (req, res) => {
-    const newOrder = req.body;
-    if (!newOrder.id) newOrder.id = `DAILY-${Date.now()}`;
-    const createdAt = newOrder.createdAt || new Date();
+    const { items, customerName, tableNumber, beeperNumber, isTest, paymentMethod, amountTendered, changeAmount } = req.body;
+
+    // Default Status Logic
+    let fileStatus = 'new';
+    let paymentStatus = 'paid'; // Default to paid
+
+    // If Pay Later, status is pending
+    if (paymentMethod === 'Pay Later') {
+        paymentStatus = 'pending';
+    }
 
     const client = await getClient();
     try {
@@ -339,32 +384,58 @@ app.post('/api/orders', async (req, res) => {
 
         await client.query('BEGIN');
 
+        // Calculate total
+        let totalAmount = 0;
+        const processedItems = []; // To store items with resolved prices/details
+
+        for (const item of items) {
+            const { rows: menuItemRows } = await client.query('SELECT price FROM menu_items WHERE id = $1', [item.menuItem.id]);
+            if (menuItemRows.length === 0) {
+                throw new Error(`Menu item with ID ${item.menuItem.id} not found.`);
+            }
+            const itemPrice = parseFloat(menuItemRows[0].price);
+            totalAmount += itemPrice * item.quantity;
+            processedItems.push({ ...item, menuItem: { ...item.menuItem, price: itemPrice } });
+        }
+
+        // Determine next ID format
+        const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+        // Simple counter for ID (in production use sequence)
+        const { rows: countRows } = await client.query('SELECT COUNT(*) FROM orders WHERE DATE(created_at) = CURRENT_DATE');
+        const count = parseInt(countRows[0].count) + 1;
+        const orderId = `${dateStr}-${count.toString().padStart(3, '0')}`;
+
+        // Create Order
         await client.query(
-            `INSERT INTO orders (id, status, total_amount, customer_name, created_at, table_number, beeper_number, is_test)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            `INSERT INTO orders (
+                id, status, total_amount, customer_name, created_at, table_number, beeper_number, 
+                is_test, payment_method, payment_status, amount_tendered, change_amount
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
             [
-                newOrder.id,
-                newOrder.status || 'new',
-                newOrder.total || 0,
-                newOrder.customerName,
-                createdAt,
-                newOrder.tableNumber || null,
-                newOrder.beeperNumber || null,
-                TEST_MODE
+                orderId,
+                fileStatus,
+                totalAmount,
+                customerName || 'Guest',
+                new Date(),
+                tableNumber || null,
+                beeperNumber || null,
+                isTest || false,
+                paymentMethod,
+                paymentStatus,
+                amountTendered || 0,
+                changeAmount || 0
             ]
         );
 
-        if (newOrder.items && newOrder.items.length > 0) {
-            for (const item of newOrder.items) {
-                // Determine flavors to save.
-                // Support both legacy single selectedFlavor and new selectedFlavors array
+        if (processedItems.length > 0) {
+            for (const item of processedItems) {
                 const flavorsToSave = item.selectedFlavors || (item.selectedFlavor ? [item.selectedFlavor] : []);
 
                 await client.query(
                     `INSERT INTO order_items (order_id, menu_item_id, menu_item_name_snapshot, menu_item_price_snapshot, quantity, selected_flavors)
                      VALUES ($1, $2, $3, $4, $5, $6)`,
                     [
-                        newOrder.id,
+                        orderId,
                         item.menuItem.id,
                         item.menuItem.name,
                         item.menuItem.price,
@@ -377,18 +448,28 @@ app.post('/api/orders', async (req, res) => {
 
         await client.query('COMMIT');
 
-        const finalOrder = { ...newOrder, is_test: TEST_MODE };
+        const finalOrder = {
+            id: orderId,
+            status: fileStatus,
+            total: totalAmount,
+            customerName,
+            tableNumber,
+            beeperNumber,
+            isTest: isTest || false,
+            paymentMethod,
+            paymentStatus,
+            amountTendered,
+            changeAmount,
+            items: processedItems
+        };
 
         res.status(201).json(finalOrder);
 
-        // Emit new order - client should maybe visualize test orders differently?
         io.emit('order:new', finalOrder);
+        invalidateAnalyticsCache();
 
-        invalidateAnalyticsCache(); // Invalidate cache on new order
-
-        // If in test mode, maybe warn admins?
         if (TEST_MODE) {
-            io.emit('console:log', { message: `[TEST] New Order placed: ${newOrder.id}`, type: 'warning' });
+            io.emit('console:log', { message: `[TEST] New Order placed: ${orderId}`, type: 'warning' });
         }
 
     } catch (err) {
@@ -399,6 +480,28 @@ app.post('/api/orders', async (req, res) => {
         client.release();
     }
 });
+
+// Mark Order as Paid
+app.patch('/api/orders/:id/pay', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { rows } = await query(
+            "UPDATE orders SET payment_status = 'paid' WHERE id = $1 RETURNING *",
+            [id]
+        );
+        if (rows.length === 0) return res.status(404).json({ error: 'Order not found' });
+
+        const finalOrder = await getFullOrder(id);
+        io.emit('order:update', finalOrder);
+        invalidateAnalyticsCache();
+
+        res.json(finalOrder);
+    } catch (err) {
+        console.error('Error marking paid:', err);
+        res.status(500).json({ error: 'Failed to mark as paid' });
+    }
+});
+
 
 app.patch('/api/orders/:id/status', async (req, res) => {
     const { id } = req.params;

@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { PaymentDialog } from './PaymentDialog';
 
 
 export function OrderPanel() {
@@ -23,19 +24,23 @@ export function OrderPanel() {
 
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   const total = getOrderTotal();
   const cashValue = parseFloat(cashReceived) || 0;
   const change = Math.max(0, cashValue - total);
 
-  const handleSubmit = async () => {
+  const handleProceed = () => {
     if (currentOrder.length === 0) {
       toast.error('Add items to the order first');
       return;
     }
+    setPaymentDialogOpen(true);
+  };
 
+  const handlePaymentConfirm = async (paymentDetails: { method: string, amountTendered?: number, change?: number }) => {
     try {
-      await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined);
+      await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails);
       setCashReceived('');
       setBeeperNumber('');
       setTableNumber('');
@@ -180,10 +185,10 @@ export function OrderPanel() {
             <Button
               size="lg"
               className="flex-1"
-              onClick={handleSubmit}
+              onClick={handleProceed}
               disabled={currentOrder.length === 0}
             >
-              Pay & Send
+              Proceed
             </Button>
           </div>
         </div>
@@ -205,6 +210,13 @@ export function OrderPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+
+      <PaymentDialog
+        open={paymentDialogOpen}
+        onOpenChange={setPaymentDialogOpen}
+        totalAmount={total}
+        onConfirm={handlePaymentConfirm}
+      />
+    </div >
   );
 }

@@ -13,8 +13,9 @@ interface OrderState {
   removeFromOrder: (itemId: string, flavors?: string[]) => void;
   updateQuantity: (itemId: string, flavors: string[] | undefined, quantity: number) => void;
   clearOrder: () => void;
-  submitOrder: (tableNumber?: number, beeperNumber?: number) => Promise<Order | undefined>;
+  submitOrder: (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }) => Promise<Order | undefined>;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
+  markAsPaid: (orderId: string) => Promise<void>;
   fetchOrders: () => Promise<void>;
   syncOfflineOrders: () => Promise<void>;
 
@@ -155,7 +156,7 @@ export const useOrderStore = create<OrderState>()(
         set({ offlineQueue: remainingQueue });
       },
 
-      submitOrder: async (tableNumber?: number, beeperNumber?: number) => {
+      submitOrder: async (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }) => {
         const { currentOrder } = get();
         if (currentOrder.length === 0) return;
 
@@ -170,6 +171,10 @@ export const useOrderStore = create<OrderState>()(
           createdAt: new Date(),
           tableNumber,
           beeperNumber,
+          paymentMethod: paymentDetails?.method || 'Cash',
+          amountTendered: paymentDetails?.amountTendered || 0,
+          changeAmount: paymentDetails?.change || 0,
+          isTest: false // Will be overridden by server constant if problematic, but good to have type
         };
 
         newOrderPayload.total = previousOrder.reduce(
@@ -279,6 +284,27 @@ export const useOrderStore = create<OrderState>()(
             };
           });
           toast.error('Connection error. Reverting changes.');
+        }
+      },
+
+      markAsPaid: async (orderId: string) => {
+        try {
+          const res = await fetchWithRetry(`${API_URL}/api/orders/${orderId}/pay`, {
+            method: 'PATCH'
+          });
+          if (res.ok) {
+            const updated = await res.json();
+            updated.createdAt = new Date(updated.createdAt);
+            set((state) => ({
+              orders: state.orders.map(o => o.id === orderId ? updated : o)
+            }));
+            toast.success('Order marked as paid');
+          } else {
+            throw new Error('Failed to mark as paid');
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error('Failed to mark as paid');
         }
       },
 

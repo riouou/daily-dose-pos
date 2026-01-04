@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function ReadyOrdersSheet() {
-    const { orders, updateOrderStatus } = useOrderStore();
+    const { orders, updateOrderStatus, markAsPaid } = useOrderStore();
 
     // Filter for orders that are 'ready'
     const readyOrders = orders.filter((o) => o.status === 'ready');
@@ -69,13 +69,26 @@ export function ReadyOrdersSheet() {
                                     ))}
                                 </div>
 
-                                <Button
-                                    className="w-full bg-success hover:bg-success/90 text-white"
-                                    onClick={() => updateOrderStatus(order.id, 'completed')}
-                                >
-                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                    Complete Order
-                                </Button>
+                                {order.paymentStatus === 'pending' ? (
+                                    <Button
+                                        className="w-full"
+                                        variant="outline"
+                                        onClick={() => markAsPaid(order.id)}
+                                    >
+                                        <div className="flex flex-col items-center">
+                                            <span className="font-bold text-destructive">Payment Pending</span>
+                                            <span className="text-xs text-muted-foreground">Click to Mark Paid</span>
+                                        </div>
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        className="w-full bg-success hover:bg-success/90 text-white"
+                                        onClick={() => updateOrderStatus(order.id, 'completed')}
+                                    >
+                                        <CheckCircle2 className="w-4 h-4 mr-2" />
+                                        Complete Order
+                                    </Button>
+                                )}
                             </div>
                         ))}
                     </div>

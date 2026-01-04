@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { Lock } from "lucide-react";
+import { useThemeStore } from "@/store/themeStore";
+import { useEffect } from "react";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -22,36 +24,44 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/cashier" element={<CashierPage />} />
-            <Route path="/kitchen" element={<KitchenPage />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+const App = () => {
+  const { initTheme } = useThemeStore();
 
-        {/* Global Watermark */}
-        <div className="fixed bottom-3 left-3 z-[9999] pointer-events-none select-none">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300 hover:bg-white/20 hover:scale-105">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-medium tracking-wide text-foreground/60 uppercase">
-              Programmed by <span className="font-bold text-foreground">nicko</span>
-            </span>
+  useEffect(() => {
+    initTheme();
+  }, [initTheme]);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/cashier" element={<CashierPage />} />
+              <Route path="/kitchen" element={<KitchenPage />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+
+          {/* Global Watermark */}
+          <div className="fixed bottom-3 left-3 z-[9999] pointer-events-none select-none">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300 hover:bg-white/20 hover:scale-105">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[10px] font-medium tracking-wide text-foreground/60 uppercase">
+                Programmed by <span className="font-bold text-foreground">nicko</span>
+              </span>
+            </div>
           </div>
-        </div>
 
 
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

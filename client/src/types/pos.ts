@@ -24,6 +24,10 @@ export interface Order {
   timestamp?: string | number | Date; // Legacy support
   tableNumber?: number;
   beeperNumber?: number;
+  paymentMethod?: 'Cash' | 'GCash' | 'Bank Transfer' | 'Pay Later' | string;
+  paymentStatus?: 'paid' | 'pending';
+  amountTendered?: number;
+  changeAmount?: number;
 }
 
 export type Category = 'All' | 'Basic' | string;

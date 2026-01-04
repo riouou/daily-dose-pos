@@ -5,6 +5,10 @@ import { Order } from '@/types/pos';
 import { useOrderStore } from '@/store/orderStore';
 import { cn } from '@/lib/utils';
 
+import { Badge } from '@/components/ui/badge';
+
+
+
 interface KitchenOrderCardProps {
   order: Order;
 }
@@ -146,6 +150,20 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
           >
             {timeAgo}
           </span>
+          {order.paymentMethod && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "mt-2 text-xs",
+                order.paymentMethod === 'GCash' && "border-blue-500 text-blue-500 bg-blue-500/10",
+                order.paymentMethod === 'Bank Transfer' && "border-red-500 text-red-500 bg-red-500/10",
+                order.paymentMethod === 'Cash' && "border-green-500 text-green-500 bg-green-500/10",
+                order.paymentMethod === 'Pay Later' && "border-yellow-500 text-yellow-500 bg-yellow-500/10",
+              )}
+            >
+              {order.paymentMethod}
+            </Badge>
+          )}
         </div>
       </div>
 
