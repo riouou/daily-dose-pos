@@ -136,6 +136,11 @@ const attachItemsToOrders = async (orders) => {
         createdAt: order.created_at, // Map snake_case to camelCase
         tableNumber: order.table_number,
         beeperNumber: order.beeper_number,
+        paymentMethod: order.payment_method,
+        paymentStatus: order.payment_status,
+        amountTendered: parseFloat(order.amount_tendered || 0),
+        changeAmount: parseFloat(order.change_amount || 0),
+        isTest: order.is_test,
         items: itemsMap[order.id] || []
     }));
 };
