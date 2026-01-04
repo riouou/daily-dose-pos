@@ -18,7 +18,7 @@ import { PaymentDialog } from './PaymentDialog';
 
 export function OrderPanel() {
   const { currentOrder, updateQuantity, removeFromOrder, clearOrder, submitOrder, getOrderTotal } = useOrderStore();
-  const [cashReceived, setCashReceived] = useState<string>('');
+
   const [beeperNumber, setBeeperNumber] = useState<string>('');
   const [tableNumber, setTableNumber] = useState<string>('');
 
@@ -27,8 +27,7 @@ export function OrderPanel() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   const total = getOrderTotal();
-  const cashValue = parseFloat(cashReceived) || 0;
-  const change = Math.max(0, cashValue - total);
+
 
   const handleProceed = () => {
     if (currentOrder.length === 0) {
@@ -41,7 +40,7 @@ export function OrderPanel() {
   const handlePaymentConfirm = async (paymentDetails: { method: string, amountTendered?: number, change?: number }) => {
     try {
       await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails);
-      setCashReceived('');
+
       setBeeperNumber('');
       setTableNumber('');
       toast.success('Order sent to kitchen!');
@@ -153,30 +152,14 @@ export function OrderPanel() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium min-w-[60px]">Cash:</span>
-            <Input
-              type="number"
-              placeholder="0.00"
-              value={cashReceived}
-              onChange={(e) => setCashReceived(e.target.value)}
-              className="text-right font-medium"
-            />
-          </div>
 
-          <div className="flex justify-between items-center text-base pt-1">
-            <span className="text-muted-foreground">Change</span>
-            <span className={`font-bold text-lg ${change > 0 ? 'text-success' : 'text-muted-foreground'}`}>
-              ₱{change.toFixed(2)}
-            </span>
-          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
           <Button
             variant="outline"
             size="lg"
-            onClick={() => { clearOrder(); setCashReceived(''); setBeeperNumber(''); setTableNumber(''); }}
+            onClick={() => { clearOrder(); setBeeperNumber(''); setTableNumber(''); }}
             disabled={currentOrder.length === 0}
           >
             Clear

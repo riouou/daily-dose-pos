@@ -496,7 +496,10 @@ app.patch('/api/orders/:id/pay', async (req, res) => {
         );
         if (rows.length === 0) return res.status(404).json({ error: 'Order not found' });
 
-        const finalOrder = await getFullOrder(id);
+        const { rows: updatedRows } = await query('SELECT * FROM orders WHERE id = $1', [id]);
+        const fullOrders = await attachItemsToOrders(updatedRows);
+        const finalOrder = fullOrders[0];
+
         io.emit('order:update', finalOrder);
         invalidateAnalyticsCache();
 
