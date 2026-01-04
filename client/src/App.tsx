@@ -40,22 +40,22 @@ const App = () => (
 
         {/* Global Watermark */}
         <div className="fixed bottom-3 left-3 z-[9999] pointer-events-none select-none">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300 hover:bg-white/20 hover:scale-105">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300 hover:bg-white/20 hover:scale-105">
             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <span className="text-[10px] font-medium tracking-wide text-foreground/60 uppercase">
               Programmed by <span className="font-bold text-foreground">nicko</span>
             </span>
           </div>
+        </div>
 
-          {/* Admin Button */}
-          <div className="fixed bottom-3 right-3 z-[9999]">
-            <Link
-              to="/admin"
-              className="flex items-center justify-center p-2 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300 hover:bg-white/20 hover:scale-110 opacity-30 hover:opacity-100"
-            >
-              <Lock className="w-4 h-4 text-foreground/60 hover:text-foreground" />
-            </Link>
-          </div>
+        {/* Admin Button */}
+        <div className="fixed bottom-3 right-3 z-[9999]">
+          <Link
+            to="/admin"
+            className="flex items-center justify-center p-2 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300 hover:bg-white/20 hover:scale-110 opacity-30 hover:opacity-100"
+          >
+            <Lock className="w-4 h-4 text-foreground/60 hover:text-foreground" />
+          </Link>
         </div>
       </BrowserRouter>
     </TooltipProvider>
