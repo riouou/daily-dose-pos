@@ -1,5 +1,6 @@
 import { Clock, ChefHat, CheckCircle2, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 import { Order } from '@/types/pos';
 import { useOrderStore } from '@/store/orderStore';
 import { cn } from '@/lib/utils';
@@ -54,14 +55,23 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
   const config = statusConfig[order.status];
   const StatusIcon = config.icon;
 
-  const getTimeAgo = (date: Date | string) => {
-    const d = new Date(date);
-    const minutes = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (isNaN(minutes)) return 'Just now';
-    if (minutes < 1) return 'Just now';
-    if (minutes === 1) return '1 min ago';
-    return `${minutes} mins ago`;
-  };
+  const [timeAgo, setTimeAgo] = useState('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const d = new Date(order.createdAt);
+      const diffMs = Date.now() - d.getTime();
+      const minutes = Math.floor(diffMs / 60000);
+
+      if (minutes < 1) setTimeAgo('Just now');
+      else if (minutes === 1) setTimeAgo('1 min ago');
+      else setTimeAgo(`${minutes} mins ago`);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 30000); // Update every 30s
+    return () => clearInterval(interval);
+  }, [order.createdAt]); // Re-run if order time changes (unlikely but safe)
 
   const handleNextStatus = () => {
     if (order.status === 'new') {
@@ -121,7 +131,7 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
 
         <div className="flex flex-col items-end">
           <span className="text-xs font-medium text-muted-foreground/80 bg-secondary/50 px-2 py-1 rounded-full border border-border/50">
-            {getTimeAgo(order.createdAt)}
+            {timeAgo}
           </span>
         </div>
       </div>

@@ -596,8 +596,8 @@ app.get('/api/admin/analytics', async (req, res) => {
     if (period === 'today') {
         timeFilter = "DATE(created_at) = CURRENT_DATE";
     } else {
-        const limitDays = period === 'month' ? 30 : 7;
-        timeFilter = `created_at >= NOW() - INTERVAL '${limitDays} days'`;
+        const limitDays = period === 'month' ? 30 : 6; // 6 days ago + today = 7 days
+        timeFilter = `DATE(created_at) >= CURRENT_DATE - INTERVAL '${limitDays} days'`;
     }
 
     try {
