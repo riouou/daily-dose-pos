@@ -13,11 +13,20 @@ const { Pool } = pg;
 
 // Create a new pool using environment variables
 // expects PGUSER, PGHOST, PGDATABASE, PGPASSWORD, PGPORT in .env
-const pool = new Pool({
+// expects PGUSER, PGHOST, PGDATABASE, PGPASSWORD, PGPORT in .env
+const poolConfig = {
     max: 20, // Maximum number of clients in the pool
     idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
-    connectionTimeoutMillis: 2000, // Return an error after 2 seconds if connection could not be established
-});
+    connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection could not be established
+};
+
+if (process.env.DATABASE_URL) {
+    poolConfig.connectionString = process.env.DATABASE_URL;
+    // Railway requires SSL for external connections
+    poolConfig.ssl = { rejectUnauthorized: false };
+}
+
+const pool = new Pool(poolConfig);
 
 export const query = (text, params) => pool.query(text, params);
 

@@ -11,6 +11,11 @@ dotenv.config({ path: path.join(__dirname, '../.env') });
 const { Client } = pg;
 
 async function createDb() {
+    if (process.env.DATABASE_URL) {
+        console.log('ℹ️ DATABASE_URL detected. Skipping database creation step (Assuming DB exists).');
+        return;
+    }
+
     console.log(`Connecting to ${process.env.PGHOST}:${process.env.PGPORT} as ${process.env.PGUSER}...`);
 
     const client = new Client({
