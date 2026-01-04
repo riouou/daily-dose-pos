@@ -3,7 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import { Lock } from "lucide-react";
 
 // Lazy load pages for better performance
 const Index = lazy(() => import("./pages/Index"));
@@ -44,6 +45,16 @@ const App = () => (
             <span className="text-[10px] font-medium tracking-wide text-foreground/60 uppercase">
               Programmed by <span className="font-bold text-foreground">nicko</span>
             </span>
+          </div>
+
+          {/* Admin Button */}
+          <div className="fixed bottom-3 right-3 z-[9999]">
+            <Link
+              to="/admin"
+              className="flex items-center justify-center p-2 rounded-full bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/10 shadow-lg transition-all duration-300 hover:bg-white/20 hover:scale-110 opacity-30 hover:opacity-100"
+            >
+              <Lock className="w-4 h-4 text-foreground/60 hover:text-foreground" />
+            </Link>
           </div>
         </div>
       </BrowserRouter>
