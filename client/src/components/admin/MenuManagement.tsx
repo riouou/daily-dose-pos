@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { useMenuStore } from '@/store/menuStore';
 import { MenuItem, FlavorSection } from '@/types/pos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -296,7 +296,7 @@ export function MenuManagement() {
 
             {/* Add/Edit Item Dialog */}
             <Dialog open={isItemDialogOpen} onOpenChange={setIsItemDialogOpen}>
-                <DialogContent>
+                <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>{isEditing ? 'Edit Item' : 'Add New Item'}</DialogTitle>
                         <DialogDescription>
@@ -470,15 +470,26 @@ export function MenuManagement() {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-semibold">{section.name}</span>
-                                                    <div className="flex items-center gap-1 text-sm text-muted-foreground bg-background px-2 py-0.5 rounded border">
-                                                        <span>Max:</span>
-                                                        <input
-                                                            type="number"
-                                                            min="1"
-                                                            className="w-8 bg-transparent text-center focus:outline-none"
-                                                            value={section.max || 1}
-                                                            onChange={(e) => handleSectionMaxChange(idx, parseInt(e.target.value) || 1)}
-                                                        />
+                                                    <div className="flex items-center gap-1 text-sm text-muted-foreground bg-background px-1 py-0.5 rounded border">
+                                                        <span className="mr-1">Max:</span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5"
+                                                            disabled={(section.max || 1) <= 1}
+                                                            onClick={() => handleSectionMaxChange(idx, Math.max(1, (section.max || 1) - 1))}
+                                                        >
+                                                            <Minus className="h-3 w-3" />
+                                                        </Button>
+                                                        <span className="w-4 text-center font-medium text-foreground">{section.max || 1}</span>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-5 w-5"
+                                                            onClick={() => handleSectionMaxChange(idx, (section.max || 1) + 1)}
+                                                        >
+                                                            <Plus className="h-3 w-3" />
+                                                        </Button>
                                                     </div>
                                                 </div>
                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveSection(idx)}>
