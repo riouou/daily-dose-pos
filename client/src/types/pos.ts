@@ -1,10 +1,16 @@
+export interface FlavorSection {
+  name: string;
+  options: string[];
+  max?: number;
+}
+
 export interface MenuItem {
   id: string;
   name: string;
   price: number;
   category: string;
   emoji?: string;
-  flavors?: string[];
+  flavors?: string[] | FlavorSection[];
   maxFlavors?: number;
 }
 

@@ -1,4 +1,4 @@
-import { MenuItem } from '@/types/pos';
+import { MenuItem, FlavorSection } from '@/types/pos';
 import { useOrderStore } from '@/store/orderStore';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -10,6 +10,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MenuItemCardProps {
   item: MenuItem;
@@ -19,6 +20,7 @@ interface MenuItemCardProps {
 export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
+  const [sectionSelections, setSectionSelections] = useState<Record<number, string[]>>({});
 
   // Check if item is in cart to show active state
   const { currentOrder } = useOrderStore();
@@ -26,9 +28,12 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
     .filter(i => i.menuItem.id === item.id)
     .reduce((acc, curr) => acc + curr.quantity, 0);
 
+  const isCategorized = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
+
   const handleClick = () => {
     if (item.flavors && item.flavors.length > 0) {
-      setSelectedFlavors([]); // Reset on open
+      setSelectedFlavors([]); // Reset simple
+      setSectionSelections({}); // Reset categorized
       setIsDialogOpen(true);
     } else {
       onAdd(item);
@@ -41,26 +46,47 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       if (isSelected) {
         return prev.filter(f => f !== flavor);
       } else {
-        // Enforce maxFlavors
         const max = item.maxFlavors || 1;
-        if (prev.length >= max) {
-          // Optional: You could replace the last one, or just stop adding.
-          // Let's stop adding for clarity, or maybe toast?
-          // For now, simple implementation:
-          return prev;
-        }
+        if (prev.length >= max) return prev;
         return [...prev, flavor];
       }
     });
   };
 
+  const toggleSectionFlavor = (sectionIndex: number, flavor: string, max: number = 1) => {
+    setSectionSelections(prev => {
+      const current = prev[sectionIndex] || [];
+      const isSelected = current.includes(flavor);
+
+      if (isSelected) {
+        return { ...prev, [sectionIndex]: current.filter(f => f !== flavor) };
+      } else {
+        if (current.length >= max) {
+          // If max is 1, auto-replace
+          if (max === 1) return { ...prev, [sectionIndex]: [flavor] };
+          return prev; // Hit limit
+        }
+        return { ...prev, [sectionIndex]: [...current, flavor] };
+      }
+    });
+  };
+
   const handleConfirm = () => {
-    onAdd(item, selectedFlavors.length > 0 ? selectedFlavors : undefined);
+    if (isCategorized) {
+      // Flatten selections
+      const allSelected = Object.values(sectionSelections).flat();
+      onAdd(item, allSelected.length > 0 ? allSelected : undefined);
+    } else {
+      onAdd(item, selectedFlavors.length > 0 ? selectedFlavors : undefined);
+    }
     setIsDialogOpen(false);
   };
 
   const isSelected = (flavor: string) => selectedFlavors.includes(flavor);
-  const max = item.maxFlavors || 1;
+  const isSectionSelected = (sectionIdx: number, flavor: string) => sectionSelections[sectionIdx]?.includes(flavor);
+
+  const sections = isCategorized ? (item.flavors as FlavorSection[]) : [];
+  const simpleFlavors = !isCategorized ? (item.flavors as string[]) : [];
 
   return (
     <>
@@ -106,32 +132,66 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Select Flavor</DialogTitle>
+            <DialogTitle>{isCategorized ? 'Customize Item' : 'Select Flavor'}</DialogTitle>
             <DialogDescription>
-              Choose up to {max} flavor{max > 1 ? 's' : ''} for {item.name}
+              {isCategorized
+                ? `choose options for ${item.name}`
+                : `Choose up to ${item.maxFlavors || 1} flavor${(item.maxFlavors || 1) > 1 ? 's' : ''}`
+              }
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-4">
-            {item.flavors?.map((flavor) => (
-              <Button
-                key={flavor}
-                variant={isSelected(flavor) ? "default" : "outline"}
-                className={cn(
-                  "h-16 text-lg transition-all",
-                  isSelected(flavor) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
-                )}
-                onClick={() => toggleFlavor(flavor)}
-              >
-                {flavor}
-              </Button>
-            ))}
-          </div>
+
+          <ScrollArea className="max-h-[60vh] -mr-4 pr-4">
+            {isCategorized ? (
+              <div className="space-y-6 py-4">
+                {sections.map((section, idx) => (
+                  <div key={idx} className="space-y-3">
+                    <div className="flex items-center justify-between border-b pb-1 mb-2">
+                      <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">{section.name}</h4>
+                      <span className="text-xs text-muted-foreground">Max: {section.max || 1}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {section.options.map((opt) => (
+                        <Button
+                          key={opt}
+                          variant={isSectionSelected(idx, opt) ? "default" : "outline"}
+                          className={cn(
+                            "h-12 text-sm justify-start px-4 transition-all",
+                            isSectionSelected(idx, opt) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
+                          )}
+                          onClick={() => toggleSectionFlavor(idx, opt, section.max)}
+                        >
+                          <div className="flex-1 text-left truncate">{opt}</div>
+                          {isSectionSelected(idx, opt) && <div className="w-2 h-2 rounded-full bg-white ml-2" />}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 py-4">
+                {simpleFlavors?.map((flavor) => (
+                  <Button
+                    key={flavor}
+                    variant={isSelected(flavor) ? "default" : "outline"}
+                    className={cn(
+                      "h-16 text-lg transition-all",
+                      isSelected(flavor) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
+                    )}
+                    onClick={() => toggleFlavor(flavor)}
+                  >
+                    {flavor}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+
           <Button
             onClick={handleConfirm}
             className="w-full mt-2"
             size="lg"
-          // Optional: disable if 0 selected?
-          // disabled={selectedFlavors.length === 0}
           >
             Add to Order
           </Button>

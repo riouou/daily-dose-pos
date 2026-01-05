@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, Edit, ArrowUp, ArrowDown } from "lucide-react";
 import { useMenuStore } from '@/store/menuStore';
-import { MenuItem } from '@/types/pos';
+import { MenuItem, FlavorSection } from '@/types/pos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +32,11 @@ export function MenuManagement() {
     const [flavorInput, setFlavorInput] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [isMultiFlavor, setIsMultiFlavor] = useState(false);
+    const [isCategorizedFlavors, setIsCategorizedFlavors] = useState(false);
+
+    // Categorized Flavor State
+    const [newSectionName, setNewSectionName] = useState('');
+    const [sectionOptionInputs, setSectionOptionInputs] = useState<Record<string, string>>({});
 
     // Alert Dialog States
     const [itemToDelete, setItemToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -45,7 +50,10 @@ export function MenuManagement() {
 
     const handleAddFlavor = () => {
         if (!flavorInput.trim()) return;
-        const currentFlavors = currentItem.flavors || [];
+        const currentFlavors = Array.isArray(currentItem.flavors) && typeof currentItem.flavors[0] === 'string'
+            ? currentItem.flavors as string[]
+            : [];
+
         if (!currentFlavors.includes(flavorInput.trim())) {
             setCurrentItem({ ...currentItem, flavors: [...currentFlavors, flavorInput.trim()] });
         }
@@ -53,8 +61,56 @@ export function MenuManagement() {
     };
 
     const handleRemoveFlavor = (flavor: string) => {
-        const currentFlavors = currentItem.flavors || [];
+        const currentFlavors = currentItem.flavors as string[] || [];
         setCurrentItem({ ...currentItem, flavors: currentFlavors.filter(f => f !== flavor) });
+    };
+
+    // Flavor Section Handlers
+    const handleAddSection = () => {
+        if (!newSectionName.trim()) return;
+        const sections = (currentItem.flavors as FlavorSection[]) || [];
+        setCurrentItem({
+            ...currentItem,
+            flavors: [...sections, { name: newSectionName.trim(), options: [], max: 1 }]
+        });
+        setNewSectionName('');
+    };
+
+    const handleRemoveSection = (index: number) => {
+        const sections = (currentItem.flavors as FlavorSection[]) || [];
+        const newSections = [...sections];
+        newSections.splice(index, 1);
+        setCurrentItem({ ...currentItem, flavors: newSections });
+    };
+
+    const handleAddSectionOption = (sectionIndex: number) => {
+        const sections = (currentItem.flavors as FlavorSection[]) || [];
+        const section = sections[sectionIndex];
+        const input = sectionOptionInputs[sectionIndex] || '';
+
+        if (!input.trim()) return;
+
+        const newSections = [...sections];
+        if (!newSections[sectionIndex].options.includes(input.trim())) {
+            newSections[sectionIndex].options.push(input.trim());
+        }
+
+        setCurrentItem({ ...currentItem, flavors: newSections });
+        setSectionOptionInputs({ ...sectionOptionInputs, [sectionIndex]: '' });
+    };
+
+    const handleRemoveSectionOption = (sectionIndex: number, option: string) => {
+        const sections = (currentItem.flavors as FlavorSection[]) || [];
+        const newSections = [...sections];
+        newSections[sectionIndex].options = newSections[sectionIndex].options.filter(o => o !== option);
+        setCurrentItem({ ...currentItem, flavors: newSections });
+    };
+
+    const handleSectionMaxChange = (sectionIndex: number, max: number) => {
+        const sections = (currentItem.flavors as FlavorSection[]) || [];
+        const newSections = [...sections];
+        newSections[sectionIndex].max = max;
+        setCurrentItem({ ...currentItem, flavors: newSections });
     };
 
     const moveCategory = (index: number, direction: 'up' | 'down') => {
@@ -92,6 +148,7 @@ export function MenuManagement() {
         setPriceInput('');
         setIsEditing(false);
         setIsMultiFlavor(false);
+        setIsCategorizedFlavors(false);
         setIsItemDialogOpen(true);
     };
 
@@ -100,6 +157,11 @@ export function MenuManagement() {
         setPriceInput(item.price.toString());
         setIsEditing(true);
         setIsMultiFlavor((item.maxFlavors || 1) > 1);
+
+        // Detect if using sections
+        const hasSections = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
+        setIsCategorizedFlavors(hasSections);
+
         setIsItemDialogOpen(true);
     };
 
@@ -109,6 +171,9 @@ export function MenuManagement() {
         setCurrentItem({ name: '', price: 0, category: defaultCategory, emoji: '', flavors: [] });
         setPriceInput('');
         setFlavorInput('');
+        setNewSectionName('');
+        setSectionOptionInputs({});
+        setIsCategorizedFlavors(false);
     };
 
     return (
@@ -361,37 +426,140 @@ export function MenuManagement() {
                         )}
                     </div>
 
-                    <div className="grid gap-2">
-                        <Label className="text-left">Flavors (Optional)</Label>
-                        <div className="flex gap-2">
-                            <Input
-                                value={flavorInput}
-                                onChange={(e) => setFlavorInput(e.target.value)}
-                                placeholder="Add flavor (e.g. Vanilla)"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        handleAddFlavor();
+                    {/* Flavors Section */}
+                    <div className="space-y-4 py-4 border-t border-border/40">
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="categorizedFlavors" className="flex flex-col gap-1 cursor-pointer">
+                                <span className="text-sm font-medium">Categorized Flavors (Combos)</span>
+                                <span className="text-xs text-muted-foreground font-normal">
+                                    Organize flavors into groups (e.g. Chicken, Fries)
+                                </span>
+                            </Label>
+                            <Switch
+                                id="categorizedFlavors"
+                                checked={isCategorizedFlavors}
+                                onCheckedChange={(checked) => {
+                                    // Reset flavors when switching modes to avoid type conflicts
+                                    if (currentItem.flavors && currentItem.flavors.length > 0) {
+                                        if (!confirm('Switching modes will clear current flavors. Continue?')) return;
                                     }
+                                    setIsCategorizedFlavors(checked);
+                                    setCurrentItem({ ...currentItem, flavors: [] });
                                 }}
                             />
-                            <Button type="button" onClick={handleAddFlavor} size="icon">
-                                <Plus className="h-4 w-4" />
-                            </Button>
                         </div>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {currentItem.flavors?.map((flavor) => (
-                                <div key={flavor} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
-                                    <span>{flavor}</span>
-                                    <button
-                                        onClick={() => handleRemoveFlavor(flavor)}
-                                        className="text-muted-foreground hover:text-destructive transition-colors"
-                                    >
-                                        <Trash2 className="h-3 w-3" />
-                                    </button>
+
+                        {isCategorizedFlavors ? (
+                            <div className="space-y-4 animate-in slide-in-from-top-2 fade-in duration-300">
+                                {/* Add New Section */}
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={newSectionName}
+                                        onChange={(e) => setNewSectionName(e.target.value)}
+                                        placeholder="New Category Name (e.g. Chicken Flavor)"
+                                    />
+                                    <Button type="button" onClick={handleAddSection} variant="secondary">
+                                        Add Category
+                                    </Button>
                                 </div>
-                            ))}
-                        </div>
+
+                                {/* List Categories */}
+                                <div className="space-y-4">
+                                    {(currentItem.flavors as FlavorSection[])?.map((section, idx) => (
+                                        <div key={idx} className="border rounded-md p-3 space-y-3 bg-secondary/10">
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-semibold">{section.name}</span>
+                                                    <div className="flex items-center gap-1 text-sm text-muted-foreground bg-background px-2 py-0.5 rounded border">
+                                                        <span>Max:</span>
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            className="w-8 bg-transparent text-center focus:outline-none"
+                                                            value={section.max || 1}
+                                                            onChange={(e) => handleSectionMaxChange(idx, parseInt(e.target.value) || 1)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleRemoveSection(idx)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+
+                                            {/* Add Options to Category */}
+                                            <div className="flex gap-2">
+                                                <Input
+                                                    className="h-8 text-sm"
+                                                    value={sectionOptionInputs[idx] || ''}
+                                                    onChange={(e) => setSectionOptionInputs({ ...sectionOptionInputs, [idx]: e.target.value })}
+                                                    placeholder={`Add ${section.name} option...`}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddSectionOption(idx);
+                                                        }
+                                                    }}
+                                                />
+                                                <Button type="button" size="sm" onClick={() => handleAddSectionOption(idx)} variant="outline">
+                                                    <Plus className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+
+                                            {/* Options List */}
+                                            <div className="flex flex-wrap gap-2">
+                                                {section.options.map((opt) => (
+                                                    <div key={opt} className="flex items-center gap-1 bg-background border px-2 py-1 rounded-md text-xs">
+                                                        <span>{opt}</span>
+                                                        <button
+                                                            onClick={() => handleRemoveSectionOption(idx, opt)}
+                                                            className="text-muted-foreground hover:text-destructive transition-colors"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="grid gap-2 animate-in slide-in-from-top-2 fade-in duration-300">
+                                <Label className="text-left">Simple Flavors</Label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={flavorInput}
+                                        onChange={(e) => setFlavorInput(e.target.value)}
+                                        placeholder="Add flavor (e.g. Vanilla)"
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                handleAddFlavor();
+                                            }
+                                        }}
+                                    />
+                                    <Button type="button" onClick={handleAddFlavor} size="icon">
+                                        <Plus className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {(Array.isArray(currentItem.flavors) && typeof currentItem.flavors[0] === 'string'
+                                        ? currentItem.flavors as string[]
+                                        : []
+                                    ).map((flavor) => (
+                                        <div key={flavor} className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-md text-sm">
+                                            <span>{flavor}</span>
+                                            <button
+                                                onClick={() => handleRemoveFlavor(flavor)}
+                                                className="text-muted-foreground hover:text-destructive transition-colors"
+                                            >
+                                                <Trash2 className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="flex justify-end gap-2">
                         <Button variant="outline" onClick={() => setIsItemDialogOpen(false)}>Cancel</Button>
