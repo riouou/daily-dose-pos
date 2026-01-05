@@ -489,6 +489,7 @@ app.post('/api/orders', async (req, res) => {
 
 // Mark Order as Paid
 app.patch('/api/orders/:id/pay', async (req, res) => {
+    const { id } = req.params;
     const { paymentMethod, amountTendered, changeAmount } = req.body;
     try {
         const { rows } = await query(
