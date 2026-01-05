@@ -16,6 +16,7 @@ export const useThemeStore = create<ThemeState>((set) => ({
     setTheme: async (theme: Theme) => {
         // Optimistic update
         set({ theme });
+        localStorage.setItem('theme', theme);
         document.documentElement.classList.remove('light', 'dark');
         document.documentElement.classList.add(theme);
 
@@ -30,17 +31,37 @@ export const useThemeStore = create<ThemeState>((set) => ({
         }
     },
     initTheme: async () => {
+        // 1. Install from local storage immediately for speed
+        const localTheme = localStorage.getItem('theme') as Theme | null;
+        if (localTheme) {
+            set({ theme: localTheme });
+            document.documentElement.classList.remove('light', 'dark');
+            document.documentElement.classList.add(localTheme);
+        }
+
+        // 2. Sync with server in background
         try {
             const res = await fetchWithRetry(`${API_URL}/api/settings`);
             if (res.ok) {
                 const settings = await res.json();
-                const remoteTheme = (settings.theme as Theme) || 'dark';
-                set({ theme: remoteTheme });
-                document.documentElement.classList.remove('light', 'dark');
-                document.documentElement.classList.add(remoteTheme);
+                const remoteTheme = (settings.theme as Theme);
+
+                // Only update if different and remote is valid
+                if (remoteTheme && remoteTheme !== localTheme) {
+                    set({ theme: remoteTheme });
+                    localStorage.setItem('theme', remoteTheme);
+                    document.documentElement.classList.remove('light', 'dark');
+                    document.documentElement.classList.add(remoteTheme);
+                }
             }
         } catch (error) {
             console.error('Failed to init theme:', error);
+            // Fallback to default if nothing local
+            if (!localTheme) {
+                const defaultTheme = 'dark';
+                set({ theme: defaultTheme });
+                document.documentElement.classList.add(defaultTheme);
+            }
         }
     },
 }));
