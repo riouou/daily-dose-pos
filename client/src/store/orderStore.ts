@@ -198,7 +198,7 @@ export const useOrderStore = create<OrderState>()(
           orders: [optimisticOrder, ...state.orders]
         }));
 
-        toast.success("Order Placed (Saved)");
+
 
         try {
           const response = await fetchWithRetry(`${API_URL}/api/orders`, {
