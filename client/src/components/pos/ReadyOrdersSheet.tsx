@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useOrderStore } from '@/store/orderStore';
+import { Order } from '@/types/pos';
 import {
     Sheet,
     SheetContent,
@@ -11,12 +13,20 @@ import { Button } from '@/components/ui/button';
 import { Bell, CheckCircle2, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { PaymentDialog } from './PaymentDialog';
 
 export function ReadyOrdersSheet() {
     const { orders, updateOrderStatus, markAsPaid } = useOrderStore();
+    const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
     // Filter for orders that are 'ready'
     const readyOrders = orders.filter((o) => o.status === 'ready');
+
+    const handlePaymentSettle = async (details: { method: string, amountTendered?: number, change?: number }) => {
+        if (!selectedOrder) return;
+        await markAsPaid(selectedOrder.id, details);
+        setSelectedOrder(null);
+    };
 
     if (readyOrders.length === 0) return null;
 
@@ -83,7 +93,7 @@ export function ReadyOrdersSheet() {
                                     <Button
                                         className="w-full"
                                         variant="outline"
-                                        onClick={() => markAsPaid(order.id)}
+                                        onClick={() => setSelectedOrder(order)}
                                     >
                                         <div className="flex flex-col items-center">
                                             <span className="font-bold text-destructive">Payment Pending</span>
@@ -103,6 +113,13 @@ export function ReadyOrdersSheet() {
                         ))}
                     </div>
                 </ScrollArea>
+
+                <PaymentDialog
+                    open={!!selectedOrder}
+                    onOpenChange={(open) => !open && setSelectedOrder(null)}
+                    totalAmount={selectedOrder?.total || 0}
+                    onConfirm={(details) => handlePaymentSettle(details)}
+                />
             </SheetContent>
         </Sheet>
     );

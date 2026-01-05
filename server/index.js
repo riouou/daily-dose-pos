@@ -136,6 +136,7 @@ const attachItemsToOrders = async (orders) => {
         createdAt: order.created_at, // Map snake_case to camelCase
         tableNumber: order.table_number,
         beeperNumber: order.beeper_number,
+        customerName: order.customer_name,
         paymentMethod: order.payment_method,
         paymentStatus: order.payment_status,
         amountTendered: parseFloat(order.amount_tendered || 0),
@@ -488,11 +489,17 @@ app.post('/api/orders', async (req, res) => {
 
 // Mark Order as Paid
 app.patch('/api/orders/:id/pay', async (req, res) => {
-    const { id } = req.params;
+    const { paymentMethod, amountTendered, changeAmount } = req.body;
     try {
         const { rows } = await query(
-            "UPDATE orders SET payment_status = 'paid' WHERE id = $1 RETURNING *",
-            [id]
+            `UPDATE orders 
+             SET payment_status = 'paid',
+                 payment_method = COALESCE($2, payment_method),
+                 amount_tendered = COALESCE($3, amount_tendered),
+                 change_amount = COALESCE($4, change_amount)
+             WHERE id = $1 
+             RETURNING *`,
+            [id, paymentMethod, amountTendered, changeAmount]
         );
         if (rows.length === 0) return res.status(404).json({ error: 'Order not found' });
 

@@ -15,7 +15,7 @@ interface OrderState {
   clearOrder: () => void;
   submitOrder: (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }, customerName?: string) => Promise<Order | undefined>;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
-  markAsPaid: (orderId: string) => Promise<void>;
+  markAsPaid: (orderId: string, paymentDetails?: { method: string, amountTendered?: number, change?: number }) => Promise<void>;
   fetchOrders: () => Promise<void>;
   syncOfflineOrders: () => Promise<void>;
 
@@ -293,10 +293,16 @@ export const useOrderStore = create<OrderState>()(
         }
       },
 
-      markAsPaid: async (orderId: string) => {
+      markAsPaid: async (orderId: string, paymentDetails?: { method: string, amountTendered?: number, change?: number }) => {
         try {
           const res = await fetchWithRetry(`${API_URL}/api/orders/${orderId}/pay`, {
-            method: 'PATCH'
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paymentMethod: paymentDetails?.method,
+              amountTendered: paymentDetails?.amountTendered,
+              changeAmount: paymentDetails?.change
+            })
           });
           if (res.ok) {
             const updated = await res.json();
