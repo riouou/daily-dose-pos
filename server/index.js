@@ -11,10 +11,15 @@ import { Server } from 'socket.io';
 import compression from 'compression';
 import helmet from 'helmet';
 
+import { globalLimiter } from './middleware/rateLimiter.js';
+import { validate } from './middleware/validate.js';
+import { menuItemSchema, categorySchema, orderSchema, settingsSchema } from './schemas/index.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1); // Required for rate limiting behind proxies (Railway/Vercel)
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
@@ -31,8 +36,9 @@ app.use(helmet({
 app.use(compression());
 app.use(cors());
 app.use(express.json());
+app.use(globalLimiter);
 
-app.use(express.json());
+
 
 // Initialize DB
 // Initialize DB
@@ -177,7 +183,7 @@ app.get('/api/menu', async (req, res) => {
     }
 });
 
-app.post('/api/menu/items', async (req, res) => {
+app.post('/api/menu/items', validate(menuItemSchema), async (req, res) => {
     const newItem = req.body;
     if (!newItem.id) newItem.id = Date.now().toString();
 
@@ -207,7 +213,7 @@ app.post('/api/menu/items', async (req, res) => {
     }
 });
 
-app.put('/api/menu/items/:id', async (req, res) => {
+app.put('/api/menu/items/:id', validate(menuItemSchema.partial()), async (req, res) => {
     const { id } = req.params;
     const updates = req.body;
 
@@ -262,7 +268,7 @@ app.delete('/api/menu/items/:id', async (req, res) => {
     }
 });
 
-app.post('/api/menu/categories', async (req, res) => {
+app.post('/api/menu/categories', validate(categorySchema), async (req, res) => {
     const { category } = req.body;
     try {
         // Get max sort_order
@@ -306,7 +312,7 @@ app.get('/api/settings', async (req, res) => {
     }
 });
 
-app.post('/api/settings', async (req, res) => {
+app.post('/api/settings', validate(settingsSchema), async (req, res) => {
     const { key, value } = req.body;
     try {
         await query('INSERT INTO settings (key, value) VALUES ($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2', [key, value]);
@@ -362,7 +368,7 @@ app.get('/api/orders', async (req, res) => {
     }
 });
 
-app.post('/api/orders', async (req, res) => {
+app.post('/api/orders', validate(orderSchema), async (req, res) => {
     const { items, customerName, tableNumber, beeperNumber, isTest, paymentMethod, amountTendered, changeAmount } = req.body;
 
     // Default Status Logic

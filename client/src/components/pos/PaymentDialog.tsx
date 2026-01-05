@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -41,9 +41,11 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excl
         : PAYMENT_METHODS;
 
     // Reset default if current method is excluded
-    if (excludePayLater && method === "Pay Later") {
-        setMethod("Cash");
-    }
+    useEffect(() => {
+        if (excludePayLater && method === "Pay Later") {
+            setMethod("Cash");
+        }
+    }, [excludePayLater, method]);
 
     const isCashEnough = method === "Cash" ? (parseFloat(amountTendered || "0") >= totalAmount) : true;
 

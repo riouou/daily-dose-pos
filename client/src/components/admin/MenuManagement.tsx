@@ -405,7 +405,7 @@ export function MenuManagement() {
                                     onChange={(e) => {
                                         const val = e.target.value;
                                         if (val === '') {
-                                            // @ts-ignore
+                                            // @ts-expect-error: Input value is string, temporarily assignment before validation handles it
                                             setCurrentItem({ ...currentItem, maxFlavors: '' });
                                             return;
                                         }

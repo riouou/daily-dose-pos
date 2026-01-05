@@ -2,13 +2,14 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
 import { fetchWithRetry } from '@/lib/api';
+import { orderSchema } from '@/lib/schemas';
 
 import { Order, OrderItem, MenuItem } from '@/types/pos';
 
 interface OrderState {
   currentOrder: OrderItem[];
   orders: Order[];
-  offlineQueue: any[]; // temporarily any to match payload structure
+  offlineQueue: Order[];
   addToOrder: (item: MenuItem, flavors?: string[]) => void;
   removeFromOrder: (itemId: string, flavors?: string[]) => void;
   updateQuantity: (itemId: string, flavors: string[] | undefined, quantity: number) => void;
@@ -99,12 +100,15 @@ export const useOrderStore = create<OrderState>()(
           const response = await fetchWithRetry(`${API_URL}/api/orders?t=${Date.now()}`);
           if (response.ok) {
             const data = await response.json();
-            const incomingOrders = data.map((o: any) => ({
+            const incomingOrders = (data as Array<{ [key: string]: unknown }>).map((o) => ({
               ...o,
-              createdAt: new Date(o.createdAt),
-              tableNumber: o.table_number || o.tableNumber,
-              beeperNumber: o.beeper_number || o.beeperNumber
-            }));
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              createdAt: new Date((o as any).createdAt),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              tableNumber: (o as any).table_number || (o as any).tableNumber,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              beeperNumber: (o as any).beeper_number || (o as any).beeperNumber
+            })) as unknown as Order[];
 
             set((state) => {
               const mergedOrders = incomingOrders.map((incoming: Order) => {
@@ -186,8 +190,7 @@ export const useOrderStore = create<OrderState>()(
         // Optimistically add to UI immediately
         const optimisticOrder = {
           ...newOrderPayload,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          items: newOrderPayload.items.map((i: any) => ({
+          items: newOrderPayload.items.map((i) => ({
             ...i,
             id: Math.random().toString(), // temporary id
             menu_item_id: i.menuItem.id
@@ -201,6 +204,14 @@ export const useOrderStore = create<OrderState>()(
 
 
         try {
+          // Validate Payload
+          const orderValidation = orderSchema.safeParse(newOrderPayload);
+          if (!orderValidation.success) {
+            const errorMsg = orderValidation.error.errors.map(e => e.message).join(', ');
+            toast.error(`Validation Error: ${errorMsg}`);
+            throw new Error(`Validation Error: ${errorMsg}`);
+          }
+
           const response = await fetchWithRetry(`${API_URL}/api/orders`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -234,7 +245,7 @@ export const useOrderStore = create<OrderState>()(
 
           console.log('Online submission failed, queuing offline:', error);
           set((state) => ({
-            offlineQueue: [...state.offlineQueue, newOrderPayload]
+            offlineQueue: [...state.offlineQueue, newOrderPayload as unknown as Order]
           }));
           toast.message("Offline Mode", {
             description: "Order saved locally. Will sync when online.",
@@ -274,7 +285,6 @@ export const useOrderStore = create<OrderState>()(
           }
 
           set((state) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { [orderId]: _, ...rest } = state.pendingUpdates;
             return { pendingUpdates: rest };
           });
@@ -282,7 +292,6 @@ export const useOrderStore = create<OrderState>()(
         } catch (error) {
           console.error('Failed to update order status:', error);
           set((state) => {
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { [orderId]: _, ...rest } = state.pendingUpdates;
             return {
               orders: previousOrders,
@@ -362,14 +371,12 @@ socket.on('connect', () => {
   useOrderStore.getState().syncOfflineOrders();
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-socket.on('order:new', (newOrder: any) => {
+socket.on('order:new', (newOrder: Order) => {
   const order = { ...newOrder, createdAt: new Date(newOrder.createdAt) };
   useOrderStore.getState().addIncomingOrder(order);
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-socket.on('order:update', (updatedOrder: any) => {
+socket.on('order:update', (updatedOrder: Order) => {
   const order = { ...updatedOrder, createdAt: new Date(updatedOrder.createdAt) };
   useOrderStore.getState().updateIncomingOrder(order);
 });

@@ -239,8 +239,7 @@ export function AnalyticsTab({ analytics, period, setPeriod }: AnalyticsTabProps
 }
 
 // Simple internal component for KPI Display
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function StatsCard({ title, value, subValue, icon: Icon, trend, color }: { title: string, value: string, subValue?: string, icon: any, trend: string, color: string }) {
+function StatsCard({ title, value, subValue, icon: Icon, trend, color }: { title: string, value: string, subValue?: string, icon: React.ElementType, trend: string, color: string }) {
     return (
         <Card className="shadow-sm hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

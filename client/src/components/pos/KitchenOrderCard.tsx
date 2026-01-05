@@ -69,7 +69,7 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
         return;
       }
 
-      const diffMs = Date.now() - d.getTime();
+      const diffMs = Math.max(0, Date.now() - d.getTime());
       const seconds = Math.floor(diffMs / 1000);
       const minutes = Math.floor(seconds / 60);
 
