@@ -24,6 +24,7 @@ export interface Order {
   timestamp?: string | number | Date; // Legacy support
   tableNumber?: number;
   beeperNumber?: number;
+  customerName?: string;
   paymentMethod?: 'Cash' | 'GCash' | 'Bank Transfer' | 'Pay Later' | string;
   paymentStatus?: 'paid' | 'pending';
   amountTendered?: number;

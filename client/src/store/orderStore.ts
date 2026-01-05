@@ -156,7 +156,7 @@ export const useOrderStore = create<OrderState>()(
         set({ offlineQueue: remainingQueue });
       },
 
-      submitOrder: async (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }) => {
+      submitOrder: async (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }, customerName?: string) => {
         const { currentOrder } = get();
         if (currentOrder.length === 0) return;
 
@@ -171,6 +171,7 @@ export const useOrderStore = create<OrderState>()(
           createdAt: new Date(),
           tableNumber,
           beeperNumber,
+          customerName: customerName || 'Guest',
           paymentMethod: paymentDetails?.method || 'Cash',
           amountTendered: paymentDetails?.amountTendered || 0,
           changeAmount: paymentDetails?.change || 0,

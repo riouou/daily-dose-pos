@@ -18,7 +18,7 @@ interface PaymentDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     totalAmount: number;
-    onConfirm: (paymentDetails: { method: string; amountTendered?: number; change?: number }) => void;
+    onConfirm: (paymentDetails: { method: string; amountTendered?: number; change?: number }, customerName?: string) => void;
 }
 
 const PAYMENT_METHODS = [
@@ -31,6 +31,7 @@ const PAYMENT_METHODS = [
 export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm }: PaymentDialogProps) {
     const [method, setMethod] = useState("Cash");
     const [amountTendered, setAmountTendered] = useState("");
+    const [customerName, setCustomerName] = useState("");
     const [error, setError] = useState("");
 
     const change = method === "Cash" && amountTendered ? Math.max(0, parseFloat(amountTendered) - totalAmount) : 0;
@@ -46,11 +47,12 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm }: Pa
             method,
             amountTendered: method === "Cash" ? parseFloat(amountTendered) : undefined,
             change: method === "Cash" ? change : undefined
-        });
+        }, customerName);
 
         // Reset state
         setMethod("Cash");
         setAmountTendered("");
+        setCustomerName("");
         setError("");
         onOpenChange(false);
     };
@@ -108,11 +110,23 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm }: Pa
                             </div>
                         </div>
                     )}
+                    {method === "Pay Later" && (
+                        <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                            <Label htmlFor="customerName">Customer Name</Label>
+                            <Input
+                                id="customerName"
+                                placeholder="Enter customer name"
+                                value={customerName}
+                                onChange={(e) => setCustomerName(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleConfirm} disabled={method === "Cash" && !amountTendered}>
+                    <Button onClick={handleConfirm} disabled={(method === "Cash" && !amountTendered) || (method === "Pay Later" && !customerName)}>
                         Confirm Payment
                     </Button>
                 </DialogFooter>

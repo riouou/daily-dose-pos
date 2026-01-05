@@ -37,9 +37,9 @@ export function OrderPanel() {
     setPaymentDialogOpen(true);
   };
 
-  const handlePaymentConfirm = async (paymentDetails: { method: string, amountTendered?: number, change?: number }) => {
+  const handlePaymentConfirm = async (paymentDetails: { method: string, amountTendered?: number, change?: number }, customerName?: string) => {
     try {
-      await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails);
+      await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails, customerName);
 
       setBeeperNumber('');
       setTableNumber('');
