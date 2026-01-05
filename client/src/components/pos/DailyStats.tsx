@@ -1,6 +1,6 @@
 import { useOrderStore } from '@/store/orderStore';
 import { Card, CardContent } from '@/components/ui/card';
-import { Banknote, ShoppingBag } from 'lucide-react';
+import { Banknote, ShoppingBag, Coffee } from 'lucide-react';
 
 export function DailyStats() {
     const { orders } = useOrderStore();
@@ -13,9 +13,12 @@ export function DailyStats() {
 
     const totalSales = todayOrders.reduce((sum, order) => sum + order.total, 0);
     const totalCount = todayOrders.length;
+    const totalCups = todayOrders.reduce((acc, order) => {
+        return acc + order.items.reduce((sum, item) => sum + item.quantity, 0);
+    }, 0);
 
     return (
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <Card className="bg-primary/10 border-primary/20">
                 <CardContent className="p-4 flex items-center justify-between">
                     <div>
@@ -27,6 +30,16 @@ export function DailyStats() {
             </Card>
 
             <Card className="bg-primary/10 border-primary/20">
+                <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                        <p className="text-sm font-medium text-muted-foreground">Cups Sold</p>
+                        <p className="text-2xl font-bold">{totalCups}</p>
+                    </div>
+                    <Coffee className="h-8 w-8 text-primary opacity-50" />
+                </CardContent>
+            </Card>
+
+            <Card className="bg-primary/10 border-primary/20 col-span-2 lg:col-span-1">
                 <CardContent className="p-4 flex items-center justify-between">
                     <div>
                         <p className="text-sm font-medium text-muted-foreground">Daily Sales</p>

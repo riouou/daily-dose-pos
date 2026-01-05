@@ -170,20 +170,29 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3 py-4">
-                {simpleFlavors?.map((flavor) => (
-                  <Button
-                    key={flavor}
-                    variant={isSelected(flavor) ? "default" : "outline"}
-                    className={cn(
-                      "h-16 text-lg transition-all",
-                      isSelected(flavor) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
-                    )}
-                    onClick={() => toggleFlavor(flavor)}
-                  >
-                    {flavor}
-                  </Button>
-                ))}
+              <div className="space-y-6 py-4">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between border-b pb-1 mb-2">
+                    <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Options</h4>
+                    <span className="text-xs text-muted-foreground">Max: {item.maxFlavors || 1}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {simpleFlavors?.map((flavor) => (
+                      <Button
+                        key={flavor}
+                        variant={isSelected(flavor) ? "default" : "outline"}
+                        className={cn(
+                          "h-12 text-sm justify-start px-4 transition-all",
+                          isSelected(flavor) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
+                        )}
+                        onClick={() => toggleFlavor(flavor)}
+                      >
+                        <div className="flex-1 text-left truncate">{flavor}</div>
+                        {isSelected(flavor) && <div className="w-2 h-2 rounded-full bg-white ml-2" />}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </ScrollArea>
