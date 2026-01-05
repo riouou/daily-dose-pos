@@ -253,8 +253,13 @@ export const useOrderStore = create<OrderState>()(
           )
         }));
 
+        const orderToUpdate = previousOrders.find(o => o.id === orderId);
+        const customerText = (orderToUpdate?.customerName && orderToUpdate.customerName !== 'Guest')
+          ? ` for ${orderToUpdate.customerName}`
+          : '';
+
         if (status === 'completed') {
-          toast.success('Order completed!');
+          toast.success(`Order${customerText} completed!`);
         }
 
         try {
@@ -299,7 +304,11 @@ export const useOrderStore = create<OrderState>()(
             set((state) => ({
               orders: state.orders.map(o => o.id === orderId ? updated : o)
             }));
-            toast.success('Order marked as paid');
+
+            const customerText = (updated.customerName && updated.customerName !== 'Guest')
+              ? ` for ${updated.customerName}`
+              : '';
+            toast.success(`Order${customerText} marked as paid`);
           } else {
             throw new Error('Failed to mark as paid');
           }

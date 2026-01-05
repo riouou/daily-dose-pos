@@ -51,6 +51,11 @@ export function ReadyOrdersSheet() {
                                             {order.beeperNumber && `Beeper ${order.beeperNumber}`}
                                             {!order.tableNumber && !order.beeperNumber && order.id}
                                         </h3>
+                                        {order.customerName && order.customerName !== 'Guest' && (
+                                            <div className="text-base text-primary font-semibold mt-1">
+                                                {order.customerName}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex items-center text-xs text-muted-foreground">
                                         <Clock className="w-3 h-3 mr-1" />
@@ -67,6 +72,11 @@ export function ReadyOrdersSheet() {
                                             <span>{item.quantity}x {item.menuItem.name}</span>
                                         </div>
                                     ))}
+                                </div>
+
+                                <div className="flex justify-between items-center py-2 border-t border-dashed border-border mb-4">
+                                    <span className="font-medium text-muted-foreground">Total to Pay</span>
+                                    <span className="font-bold text-lg">₱{order.total.toFixed(2)}</span>
                                 </div>
 
                                 {order.paymentStatus === 'pending' ? (
