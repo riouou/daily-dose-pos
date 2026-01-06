@@ -813,20 +813,23 @@ app.get('/api/admin/analytics', async (req, res) => {
         const { rows: itemRows } = await query(itemsSql);
 
         // Calculate Total Cups (Drinks)
-        // We need to join with menu_items to get the type (snapshot doesn't have type currently)
-        // Or if we trust the menu_item_id link is still valid. 
-        // Ideally we should snapshot 'type' too, but for now we join on current menu_items.
-        const cupsSql = `
-            SELECT SUM(i.quantity) as total_cups
-            FROM order_items i
-            JOIN orders o ON i.order_id = o.id
-            JOIN menu_items m ON i.menu_item_id = m.id
-            WHERE ${timeFilter.replace(/created_at/g, 'o.created_at')} 
-            AND o.is_test = FALSE
-            AND m.type = 'drink'
-        `;
-        const { rows: cupsRows } = await query(cupsSql);
-        const totalCups = parseInt(cupsRows[0]?.total_cups || 0);
+        let totalCups = 0;
+        try {
+            const cupsSql = `
+                SELECT SUM(i.quantity) as total_cups
+                FROM order_items i
+                JOIN orders o ON i.order_id = o.id
+                JOIN menu_items m ON i.menu_item_id = m.id
+                WHERE ${timeFilter.replace(/created_at/g, 'o.created_at')} 
+                AND o.is_test = FALSE
+                AND m.type = 'drink'
+            `;
+            const { rows: cupsRows } = await query(cupsSql);
+            totalCups = parseInt(cupsRows[0]?.total_cups || 0);
+        } catch (err) {
+            console.error('Error calculating total cups:', err);
+            // Default to 0, don't crash
+        }
 
         const hourlySql = `
             SELECT 
@@ -849,7 +852,18 @@ app.get('/api/admin/analytics', async (req, res) => {
             };
         });
 
-        const responseData = { dailyTotals, topItems, hourlyStats };
+        const topItems = itemRows.map(r => ({
+            name: r.name,
+            quantity: parseInt(r.quantity),
+            sales: parseFloat(r.sales)
+        }));
+
+        const responseData = {
+            dailyTotals,
+            topItems,
+            hourlyStats,
+            totalCups // Include in response
+        };
 
         // Save to cache
         analyticsCache.set(period, {
