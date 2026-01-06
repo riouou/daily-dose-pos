@@ -91,6 +91,20 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   const sections = isCategorized ? (item.flavors as FlavorSection[]) : [];
   const simpleFlavors = !isCategorized ? (item.flavors as string[]) : [];
 
+  const isValidSelection = () => {
+    if (isCategorized) {
+      // For categorized, checking if at least one option is selected across all sections
+      // You might want to enforce "at least one per section" if required,
+      // but for now, "at least one total" seems to be the baseline request.
+      // If the user wants STRICT enforcement (e.g., must pick a Size AND a Sugar Level), 
+      // we'd need more specific metadata from the backend (e.g. min/max per section).
+      // Assuming naive "must pick something" for now:
+      return Object.values(sectionSelections).some(s => s.length > 0);
+    } else {
+      return selectedFlavors.length > 0;
+    }
+  };
+
   return (
     <>
       <div
@@ -204,6 +218,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
             onClick={handleConfirm}
             className="w-full mt-2"
             size="lg"
+            disabled={!isValidSelection()}
           >
             Add to Order
           </Button>
