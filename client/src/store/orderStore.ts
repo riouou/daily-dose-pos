@@ -353,6 +353,28 @@ export const useOrderStore = create<OrderState>()(
           if (state.pendingUpdates[order.id]) {
             return state;
           }
+
+          // Check for status changes to trigger notifications
+          const existingOrder = state.orders.find(o => o.id === order.id);
+          if (existingOrder && existingOrder.status !== order.status) {
+            const customerText = (order.customerName && order.customerName !== 'Guest')
+              ? ` for ${order.customerName}`
+              : '';
+
+            if (order.status === 'ready') {
+              toast.success(`Order #${order.beeperNumber || order.tableNumber || order.id.slice(-4)} is Ready${customerText}!`, {
+                duration: 5000,
+                className: "bg-emerald-50 border-emerald-200 text-emerald-800"
+              });
+
+              // Play a sound for ready orders
+              const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+              audio.play().catch(e => console.log('Audio play failed:', e));
+            } else if (order.status === 'completed') {
+              // Optional: toast.info(`Order #${order.id} completed`);
+            }
+          }
+
           return {
             orders: state.orders.map(o => o.id === order.id ? order : o)
           };
@@ -375,6 +397,7 @@ import { socket } from '@/lib/socket';
 socket.on('connect', () => {
   console.log('Connected to WebSocket server');
   useOrderStore.getState().syncOfflineOrders();
+  useOrderStore.getState().fetchOrders();
 });
 
 socket.on('order:new', (newOrder: Order) => {
