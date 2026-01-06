@@ -149,11 +149,11 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{isCategorized ? 'Customize Item' : 'Select Flavor'}</DialogTitle>
+            <DialogTitle>{isCategorized ? 'Customize Item' : 'Select Preference'}</DialogTitle>
             <DialogDescription>
               {isCategorized
                 ? `choose options for ${item.name}`
-                : `Choose up to ${item.maxFlavors || 1} flavor${(item.maxFlavors || 1) > 1 ? 's' : ''}`
+                : `Choose up to ${item.maxFlavors || 1} preference${(item.maxFlavors || 1) > 1 ? 's' : ''}`
               }
             </DialogDescription>
           </DialogHeader>
