@@ -17,7 +17,8 @@ interface MenuState {
     reorderCategories: (categories: string[]) => Promise<void>;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { API_URL } from '../lib/config';
+
 
 export const useMenuStore = create<MenuState>((set, get) => ({
     items: [],

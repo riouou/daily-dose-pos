@@ -4,6 +4,7 @@ import { Terminal, Send, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { socket } from '@/lib/socket';
+import { API_URL } from '@/lib/config';
 
 interface LogMessage {
     message: string;
@@ -98,7 +99,7 @@ export function TerminalPanel() {
             for (let i = 0; i < count; i++) {
                 // Mix fetching orders and menu to simulate real traffic
                 const endpoint = i % 2 === 0 ? '/api/orders' : '/api/menu';
-                const url = `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${endpoint}`;
+                const url = `${API_URL}${endpoint}`;
 
                 fetch(url)
                     .then(res => {
@@ -119,7 +120,7 @@ export function TerminalPanel() {
         }
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/command`, {
+            const res = await fetch(`${API_URL}/api/admin/command`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ command, args })

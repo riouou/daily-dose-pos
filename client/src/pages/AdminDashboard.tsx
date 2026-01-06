@@ -14,6 +14,7 @@ import { MenuManagement } from '@/components/admin/MenuManagement';
 import { HistoryDialog } from '@/components/admin/HistoryDialog';
 import { AnalyticsData, HistoryItem, DetailedHistory } from '@/types/pos';
 import { socket } from '@/lib/socket';
+import { API_URL } from '@/lib/config';
 import { TerminalPanel } from '@/components/admin/TerminalPanel';
 
 export default function AdminDashboard() {
@@ -37,7 +38,7 @@ export default function AdminDashboard() {
     // Fetch Data Functions
     const fetchStatus = useCallback(async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/status`);
+            const res = await fetch(`${API_URL}/api/admin/status`);
             if (res.ok) {
                 const data = await res.json();
                 setSessionStatus(data.status);
@@ -49,7 +50,7 @@ export default function AdminDashboard() {
 
     const fetchHistory = useCallback(async (page = 1) => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/history?page=${page}&limit=10`);
+            const res = await fetch(`${API_URL}/api/admin/history?page=${page}&limit=10`);
             if (!res.ok) throw new Error('Failed to fetch history');
             const data = await res.json();
 
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
 
     const fetchAnalytics = useCallback(async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/analytics?period=${period}`);
+            const res = await fetch(`${API_URL}/api/admin/analytics?period=${period}`);
             if (!res.ok) throw new Error('Failed to fetch analytics');
             const data = await res.json();
             setAnalyticsData(data);
@@ -125,7 +126,7 @@ export default function AdminDashboard() {
     const handleOpenDay = async () => {
         setIsLoadingClose(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/open-day`, {
+            const res = await fetch(`${API_URL}/api/admin/open-day`, {
                 method: 'POST'
             });
             if (!res.ok) throw new Error('Failed to open session');
@@ -143,7 +144,7 @@ export default function AdminDashboard() {
     const handleCloseDay = async () => {
         setIsLoadingClose(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/close-day`, {
+            const res = await fetch(`${API_URL}/api/admin/close-day`, {
                 method: 'POST'
             });
 
@@ -169,7 +170,7 @@ export default function AdminDashboard() {
 
     const handleViewHistory = async (filename: string) => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/history/${filename}`);
+            const res = await fetch(`${API_URL}/api/admin/history/${filename}`);
             if (!res.ok) throw new Error('Failed to fetch history details');
 
             const data = await res.json();

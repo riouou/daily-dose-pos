@@ -27,7 +27,8 @@ interface OrderState {
   updateIncomingOrder: (order: Order) => void;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { API_URL } from '../lib/config';
+
 
 // Helper to compare flavor arrays
 const areFlavorsEqual = (a?: string[], b?: string[]) => {
@@ -348,9 +349,14 @@ export const useOrderStore = create<OrderState>()(
       },
 
       updateIncomingOrder: (order: Order) => {
-        set((state) => ({
-          orders: state.orders.map(o => o.id === order.id ? order : o)
-        }));
+        set((state) => {
+          if (state.pendingUpdates[order.id]) {
+            return state;
+          }
+          return {
+            orders: state.orders.map(o => o.id === order.id ? order : o)
+          };
+        });
       },
     }),
     {

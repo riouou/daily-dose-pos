@@ -9,7 +9,8 @@ interface ThemeState {
     initTheme: () => Promise<void>;
 }
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+import { API_URL } from '../lib/config';
+
 
 export const useThemeStore = create<ThemeState>((set) => ({
     theme: (localStorage.getItem('theme') as Theme) || 'dark', // Initialize from storage
