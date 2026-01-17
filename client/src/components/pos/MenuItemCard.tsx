@@ -143,8 +143,10 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
       const hasOptions = sections.some(s => s.options && s.options.length > 0);
       if (!hasOptions) return true;
 
-      // If options exist, enforce selection (at least one total)
-      return Object.values(sectionSelections).some(s => s.length > 0);
+      // If options exist, we previously enforced selection.
+      // Now, we allow optional selection (User request: "make it optional too").
+      // If specific "Required" logic is needed later, we can check for a 'min' property.
+      return true;
     } else {
       const hasOptions = simpleFlavors && simpleFlavors.length > 0;
       if (!hasOptions) return true;
