@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+const flavorSectionSchema = z.object({
+    name: z.string(),
+    options: z.array(z.string()),
+    max: z.number().optional()
+});
+
 export const menuItemSchema = z.object({
     id: z.string().optional(), // ID is often generated or preserved
     name: z.string().min(1, "Name is required"),
@@ -9,7 +15,10 @@ export const menuItemSchema = z.object({
     image: z.string().optional().nullable(),
     description: z.string().optional().nullable(),
     isAvailable: z.boolean().optional(),
-    flavors: z.array(z.string()).optional(),
+    flavors: z.union([
+        z.array(z.string()),
+        z.array(flavorSectionSchema)
+    ]).optional(),
     maxFlavors: z.number().int().min(1).optional(),
     type: z.enum(['food', 'drink']).optional()
 });
