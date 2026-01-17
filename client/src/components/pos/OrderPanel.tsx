@@ -1,5 +1,6 @@
-import { Minus, Plus, Trash2, ShoppingCart, AlertCircle } from 'lucide-react';
+import { Minus, Plus, Trash2, ShoppingCart, AlertCircle, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { EditFlavorDialog } from './EditFlavorDialog';
 import { Input } from '@/components/ui/input';
 import { useOrderStore } from '@/store/orderStore';
 import { useMenuStore } from '@/store/menuStore';
@@ -27,6 +28,50 @@ export function OrderPanel() {
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+
+  const [editingItem, setEditingItem] = useState<{ item: any, flavors: string[], quantity: number } | null>(null);
+
+  const handleFlavorUpdate = (newFlavors: string[]) => {
+    if (!editingItem) return;
+    // Remove old item (all quantity of it)
+    removeFromOrder(editingItem.item.id, editingItem.flavors);
+    // Add new item with preserved quantity
+    console.log('Adding updated item', editingItem.item.name, newFlavors, editingItem.quantity);
+    // We must cast item back to MenuItem because OrderItem stores menuItem.
+    // But we can just use editingItem.item directly if it is the MenuItem object.
+    // In OrderPanel map, orderItem.menuItem IS the MenuItem.
+    // However, duplicate IDs from re-adding might cause issues with `addToOrder` if not careful? 
+    // No, `addToOrder` handles merging.
+    const { quantity, item } = editingItem;
+    // Wait for removal to propagate? Zustand updates are synchronous usually.
+
+    // Because addToOrder is synchronous, we can call it immediately.
+    // CAUTION: If the new flavors are IDENTICAL to another existing item, they will merge.
+    // E.g. Edit Item A -> Item B. If Item B already exists with qty 2, and A had qty 1. Result should be Item B qty 3.
+    // `addToOrder` logic handles this merge.
+
+    // One edge case: If the new selections are Identical to the OLD selections (no change), 
+    // we just removed and re-added. It works fine.
+
+    // Wait, removeFromOrder removes based on ID + Flavors.
+
+    // We need to access the `addToOrder` from store.
+    // It is destructured at top.
+
+    // Re-add
+    // We need to use a slightly delayed add probably? No, synchronous is fine.
+    // ACTUALLY: removeFromOrder might inadvertently affect the render loop if we are unmounting?
+    // No, React handles state updates.
+
+    // But we need to make sure we have the addToOrder available.
+    // We do.
+
+    // Call add
+    // We need to make sure `item` is fully compliant MenuItem.
+    useOrderStore.getState().addToOrder(item, newFlavors, quantity);
+
+    setEditingItem(null);
+  };
 
   const total = getOrderTotal();
 
@@ -124,6 +169,14 @@ export function OrderPanel() {
                 </p>
               </div>
               <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-slate-200 dark:hover:bg-slate-800"
+                  onClick={() => setEditingItem({ item: orderItem.menuItem, flavors: orderItem.selectedFlavors || [], quantity: orderItem.quantity })}
+                >
+                  <Pencil className="w-3.5 h-3.5 opacity-70" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -226,6 +279,14 @@ export function OrderPanel() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditFlavorDialog
+        open={!!editingItem}
+        onOpenChange={(open) => !open && setEditingItem(null)}
+        item={editingItem?.item}
+        currentFlavors={editingItem?.flavors || []}
+        onConfirm={handleFlavorUpdate}
+      />
 
       <PaymentDialog
         open={paymentDialogOpen}

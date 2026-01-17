@@ -11,7 +11,7 @@ interface OrderState {
   currentOrder: OrderItem[];
   orders: Order[];
   offlineQueue: Order[];
-  addToOrder: (item: MenuItem, flavors?: string[]) => void;
+  addToOrder: (item: MenuItem, flavors?: string[], quantity?: number) => void;
   removeFromOrder: (itemId: string, flavors?: string[]) => void;
   updateQuantity: (itemId: string, flavors: string[] | undefined, quantity: number) => void;
   clearOrder: () => void;
@@ -49,7 +49,7 @@ export const useOrderStore = create<OrderState>()(
       offlineQueue: [],
       pendingUpdates: {},
 
-      addToOrder: (item: MenuItem, flavors?: string[]) => {
+      addToOrder: (item: MenuItem, flavors?: string[], quantity: number = 1) => {
         set((state) => {
           const existing = state.currentOrder.find(o =>
             o.menuItem.id === item.id && areFlavorsEqual(o.selectedFlavors, flavors)
@@ -58,7 +58,7 @@ export const useOrderStore = create<OrderState>()(
             return {
               currentOrder: state.currentOrder.map(o =>
                 (o.menuItem.id === item.id && areFlavorsEqual(o.selectedFlavors, flavors))
-                  ? { ...o, quantity: o.quantity + 1 }
+                  ? { ...o, quantity: o.quantity + quantity }
                   : o
               ),
             };
@@ -66,7 +66,7 @@ export const useOrderStore = create<OrderState>()(
           return {
             currentOrder: [...state.currentOrder, {
               menuItem: item,
-              quantity: 1,
+              quantity: quantity,
               selectedFlavors: flavors,
               selectedFlavor: flavors?.[0] // Backward compat
             }],
