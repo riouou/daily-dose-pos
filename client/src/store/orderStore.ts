@@ -120,7 +120,13 @@ export const useOrderStore = create<OrderState>()(
                 }
                 return incoming;
               });
-              return { orders: mergedOrders };
+
+              // Preserve optimistic orders (those starting with ORD-) that aren't in the incoming list
+              const optimisticOrders = state.orders.filter(o =>
+                o.id.startsWith('ORD-') && !mergedOrders.some(existing => existing.id === o.id)
+              );
+
+              return { orders: [...optimisticOrders, ...mergedOrders] };
             });
           }
         } catch (error) {

@@ -19,6 +19,7 @@ interface PaymentDialogProps {
     totalAmount: number;
     onConfirm: (paymentDetails: { method: string; amountTendered?: number; change?: number }, customerName?: string) => void;
     excludePayLater?: boolean;
+    isSubmitting?: boolean;
 }
 
 const PAYMENT_METHODS = [
@@ -28,7 +29,7 @@ const PAYMENT_METHODS = [
     { id: "Pay Later", label: "Pay Later", icon: Clock, color: "text-yellow-500" },
 ];
 
-export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excludePayLater }: PaymentDialogProps) {
+export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excludePayLater, isSubmitting }: PaymentDialogProps) {
     const [method, setMethod] = useState("Cash");
     const [amountTendered, setAmountTendered] = useState("");
     const [customerName, setCustomerName] = useState("");
@@ -47,6 +48,16 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excl
         }
     }, [excludePayLater, method]);
 
+    // Reset state when dialog closes
+    useEffect(() => {
+        if (!open) {
+            setMethod("Cash");
+            setAmountTendered("");
+            setCustomerName("");
+            setError("");
+        }
+    }, [open]);
+
     const isCashEnough = method === "Cash" ? (parseFloat(amountTendered || "0") >= totalAmount) : true;
 
     const handleConfirm = () => {
@@ -60,13 +71,6 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excl
             amountTendered: method === "Cash" ? parseFloat(amountTendered) : undefined,
             change: method === "Cash" ? change : undefined
         }, customerName);
-
-        // Reset state
-        setMethod("Cash");
-        setAmountTendered("");
-        setCustomerName("");
-        setError("");
-        onOpenChange(false);
     };
 
     return (
@@ -149,9 +153,12 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excl
                 )}
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleConfirm} disabled={(method === "Cash" && !amountTendered) || (method === "Pay Later" && !customerName)}>
-                        Confirm Payment
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
+                    <Button
+                        onClick={handleConfirm}
+                        disabled={(method === "Cash" && !amountTendered) || (method === "Pay Later" && !customerName) || isSubmitting}
+                    >
+                        {isSubmitting ? "Processing..." : "Confirm Payment"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

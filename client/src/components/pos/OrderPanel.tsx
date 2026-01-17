@@ -28,48 +28,15 @@ export function OrderPanel() {
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [editingItem, setEditingItem] = useState<{ item: any, flavors: string[], quantity: number } | null>(null);
 
   const handleFlavorUpdate = (newFlavors: string[]) => {
     if (!editingItem) return;
-    // Remove old item (all quantity of it)
     removeFromOrder(editingItem.item.id, editingItem.flavors);
-    // Add new item with preserved quantity
-    console.log('Adding updated item', editingItem.item.name, newFlavors, editingItem.quantity);
-    // We must cast item back to MenuItem because OrderItem stores menuItem.
-    // But we can just use editingItem.item directly if it is the MenuItem object.
-    // In OrderPanel map, orderItem.menuItem IS the MenuItem.
-    // However, duplicate IDs from re-adding might cause issues with `addToOrder` if not careful? 
-    // No, `addToOrder` handles merging.
     const { quantity, item } = editingItem;
-    // Wait for removal to propagate? Zustand updates are synchronous usually.
-
-    // Because addToOrder is synchronous, we can call it immediately.
-    // CAUTION: If the new flavors are IDENTICAL to another existing item, they will merge.
-    // E.g. Edit Item A -> Item B. If Item B already exists with qty 2, and A had qty 1. Result should be Item B qty 3.
-    // `addToOrder` logic handles this merge.
-
-    // One edge case: If the new selections are Identical to the OLD selections (no change), 
-    // we just removed and re-added. It works fine.
-
-    // Wait, removeFromOrder removes based on ID + Flavors.
-
-    // We need to access the `addToOrder` from store.
-    // It is destructured at top.
-
-    // Re-add
-    // We need to use a slightly delayed add probably? No, synchronous is fine.
-    // ACTUALLY: removeFromOrder might inadvertently affect the render loop if we are unmounting?
-    // No, React handles state updates.
-
-    // But we need to make sure we have the addToOrder available.
-    // We do.
-
-    // Call add
-    // We need to make sure `item` is fully compliant MenuItem.
     useOrderStore.getState().addToOrder(item, newFlavors, quantity);
-
     setEditingItem(null);
   };
 
@@ -85,16 +52,22 @@ export function OrderPanel() {
   };
 
   const handlePaymentConfirm = async (paymentDetails: { method: string, amountTendered?: number, change?: number }, customerName?: string) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
     try {
       await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails, customerName);
 
       setBeeperNumber('');
       setTableNumber('');
+      setPaymentDialogOpen(false); // Close dialog on success
       toast.success('Order sent to kitchen!');
     } catch (error) {
       const err = error as Error;
       setErrorMessage(err.message || 'Failed to submit order');
       setErrorDialogOpen(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -305,6 +278,7 @@ export function OrderPanel() {
         onOpenChange={setPaymentDialogOpen}
         totalAmount={total}
         onConfirm={handlePaymentConfirm}
+        isSubmitting={isSubmitting}
       />
     </div >
   );
