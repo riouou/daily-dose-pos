@@ -175,6 +175,7 @@ export function MenuManagement() {
     const [isAddonsDialogOpen, setIsAddonsDialogOpen] = useState(false);
     const { globalAddons, fetchGlobalAddons, saveGlobalAddons } = useMenuStore();
     const [localAddons, setLocalAddons] = useState<FlavorSection[]>([]);
+    const [openSectionIndex, setOpenSectionIndex] = useState<number | null>(null);
 
     // Manage Global Add-ons
     const openAddonsDialog = () => {
@@ -749,7 +750,7 @@ export function MenuManagement() {
                                     />
                                     <div className="flex flex-col gap-1.5 shrink-0 max-w-[400px]">
                                         <span className="text-xs text-muted-foreground font-medium">Apply to Categories:</span>
-                                        <Popover>
+                                        <Popover open={openSectionIndex === sIdx} onOpenChange={(isOpen) => setOpenSectionIndex(isOpen ? sIdx : null)}>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" role="combobox" className="w-full justify-between h-9 text-left font-normal">
                                                     {(() => {
