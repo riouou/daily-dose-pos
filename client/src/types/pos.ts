@@ -1,6 +1,11 @@
+export interface FlavorOption {
+  name: string;
+  price?: number;
+}
+
 export interface FlavorSection {
   name: string;
-  options: string[];
+  options: (string | FlavorOption)[];
   max?: number;
 }
 

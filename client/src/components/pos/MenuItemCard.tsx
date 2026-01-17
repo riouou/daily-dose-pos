@@ -1,5 +1,6 @@
 import { MenuItem, FlavorSection } from '@/types/pos';
 import { useOrderStore } from '@/store/orderStore';
+import { useMenuStore } from '@/store/menuStore';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import {
@@ -28,10 +29,12 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
     .filter(i => i.menuItem.id === item.id)
     .reduce((acc, curr) => acc + curr.quantity, 0);
 
-  const isCategorized = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
+  const { globalAddons } = useMenuStore();
+
+  const isCategorized = (Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string') || item.type === 'drink';
 
   const handleClick = () => {
-    if (item.flavors && item.flavors.length > 0) {
+    if ((item.flavors && item.flavors.length > 0) || (item.type === 'drink' && globalAddons.length > 0)) {
       setSelectedFlavors([]); // Reset simple
       setSectionSelections({}); // Reset categorized
       setIsDialogOpen(true);
@@ -88,7 +91,17 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   const isSelected = (flavor: string) => selectedFlavors.includes(flavor);
   const isSectionSelected = (sectionIdx: number, flavor: string) => sectionSelections[sectionIdx]?.includes(flavor);
 
-  const sections = isCategorized ? (item.flavors as FlavorSection[]) : [];
+  // Merge item flavors with global addons if type is drink
+  let sections: FlavorSection[] = [];
+  if (isCategorized) {
+    const itemFlavors = (item.flavors as FlavorSection[]) || [];
+    sections = [...itemFlavors];
+
+    if (item.type === 'drink') {
+      sections = [...sections, ...globalAddons];
+    }
+  }
+
   const simpleFlavors = !isCategorized ? (item.flavors as string[]) : [];
 
   const isValidSelection = () => {
@@ -168,20 +181,31 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
                       <span className="text-xs text-muted-foreground">Max: {section.max || 1}</span>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {section.options.map((opt) => (
-                        <Button
-                          key={opt}
-                          variant={isSectionSelected(idx, opt) ? "default" : "outline"}
-                          className={cn(
-                            "w-full h-12 text-sm justify-start px-4 transition-all focus-visible:ring-0 focus-visible:ring-offset-0",
-                            isSectionSelected(idx, opt) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
-                          )}
-                          onClick={() => toggleSectionFlavor(idx, opt, section.max)}
-                        >
-                          <div className="flex-1 text-left truncate">{opt}</div>
-                          {isSectionSelected(idx, opt) && <div className="w-2 h-2 rounded-full bg-white ml-2" />}
-                        </Button>
-                      ))}
+                      {section.options.map((opt) => {
+                        const optName = typeof opt === 'string' ? opt : opt.name;
+                        const optPrice = typeof opt === 'string' ? 0 : opt.price;
+                        return (
+                          <Button
+                            key={optName}
+                            variant={isSectionSelected(idx, optName) ? "default" : "outline"}
+                            className={cn(
+                              "w-full h-12 text-sm justify-start px-4 transition-all focus-visible:ring-0 focus-visible:ring-offset-0",
+                              isSectionSelected(idx, optName) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
+                            )}
+                            onClick={() => toggleSectionFlavor(idx, optName, section.max)}
+                          >
+                            <div className="flex-1 text-left truncate flex items-center justify-between">
+                              <span>{optName}</span>
+                              {optPrice && optPrice > 0 ? (
+                                <span className={cn("text-xs font-semibold px-1 rounded", isSectionSelected(idx, optName) ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                                  +₱{optPrice}
+                                </span>
+                              ) : null}
+                            </div>
+                            {isSectionSelected(idx, optName) && <div className="w-2 h-2 rounded-full bg-white ml-2" />}
+                          </Button>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}

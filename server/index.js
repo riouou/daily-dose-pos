@@ -176,9 +176,19 @@ app.get('/api/menu', async (req, res) => {
             type: item.type || 'food'
         }));
 
+        // Fetch global addons
+        const { rows: settingsRows } = await query("SELECT value FROM settings WHERE key = 'global_addons'");
+        let globalAddons = [];
+        if (settingsRows.length > 0) {
+            try {
+                globalAddons = JSON.parse(settingsRows[0].value);
+            } catch (e) { /* ignore */ }
+        }
+
         res.json({
             categories: categories.map(c => c.name),
-            items: formattedItems
+            items: formattedItems,
+            globalAddons
         });
     } catch (err) {
         console.error('Error fetching menu:', err);
@@ -405,14 +415,63 @@ app.post('/api/orders', validate(orderSchema), async (req, res) => {
         let totalAmount = 0;
         const processedItems = []; // To store items with resolved prices/details
 
+        // Fetch global addons once
+        const { rows: settingsRows } = await client.query("SELECT value FROM settings WHERE key = 'global_addons'");
+        let globalAddons = [];
+        if (settingsRows.length > 0) {
+            try {
+                globalAddons = JSON.parse(settingsRows[0].value);
+            } catch (e) {
+                console.error('Failed to parse global addons for order calc', e);
+            }
+        }
+
         for (const item of items) {
-            const { rows: menuItemRows } = await client.query('SELECT price FROM menu_items WHERE id = $1', [item.menuItem.id]);
+            const { rows: menuItemRows } = await client.query('SELECT price, flavors, type FROM menu_items WHERE id = $1', [item.menuItem.id]);
             if (menuItemRows.length === 0) {
                 throw new Error(`Menu item with ID ${item.menuItem.id} not found.`);
             }
-            const itemPrice = parseFloat(menuItemRows[0].price);
-            totalAmount += itemPrice * item.quantity;
-            processedItems.push({ ...item, menuItem: { ...item.menuItem, price: itemPrice } });
+            const dbItem = menuItemRows[0];
+            const itemBasePrice = parseFloat(dbItem.price);
+
+            // Calculate Add-on Prices
+            let addOnPrice = 0;
+            const selectedFlavors = item.selectedFlavors || (item.selectedFlavor ? [item.selectedFlavor] : []);
+
+            if (selectedFlavors.length > 0) {
+                const itemFlavors = dbItem.flavors || []; // Can be array of strings or objects
+
+                selectedFlavors.forEach(flavorName => {
+                    let priceFound = 0;
+
+                    // 1. Check Item specific flavors
+                    if (Array.isArray(itemFlavors) && itemFlavors.length > 0 && typeof itemFlavors[0] !== 'string') {
+                        for (const section of itemFlavors) {
+                            const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                            if (option && typeof option !== 'string' && option.price) {
+                                priceFound = option.price;
+                                break;
+                            }
+                        }
+                    }
+
+                    // 2. Check Global Addons (if drink)
+                    if (priceFound === 0 && dbItem.type === 'drink') {
+                        for (const section of globalAddons) {
+                            const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                            if (option && typeof option !== 'string' && option.price) {
+                                priceFound = option.price;
+                                break;
+                            }
+                        }
+                    }
+                    addOnPrice += priceFound;
+                });
+            }
+
+            const itemTotal = (itemBasePrice + addOnPrice) * item.quantity;
+            totalAmount += itemTotal;
+            processedItems.push({ ...item, menuItem: { ...item.menuItem, price: itemBasePrice } });
         }
 
         // Determine next ID format

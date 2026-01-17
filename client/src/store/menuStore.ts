@@ -7,6 +7,7 @@ import { fetchWithRetry } from '@/lib/api';
 interface MenuState {
     items: MenuItem[];
     categories: Category[];
+    globalAddons: FlavorSection[];
     isLoading: boolean;
     fetchMenu: () => Promise<void>;
     addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
@@ -15,6 +16,8 @@ interface MenuState {
     addCategory: (category: string) => Promise<void>;
     deleteCategory: (category: string) => Promise<void>;
     reorderCategories: (categories: string[]) => Promise<void>;
+    fetchGlobalAddons: () => Promise<void>;
+    saveGlobalAddons: (addons: FlavorSection[]) => Promise<void>;
 }
 
 import { API_URL } from '../lib/config';
@@ -23,6 +26,7 @@ import { API_URL } from '../lib/config';
 export const useMenuStore = create<MenuState>((set, get) => ({
     items: [],
     categories: ['All'],
+    globalAddons: [],
     isLoading: false,
 
     fetchMenu: async () => {
@@ -31,7 +35,12 @@ export const useMenuStore = create<MenuState>((set, get) => ({
             const res = await fetchWithRetry(`${API_URL}/api/menu`);
             if (res.ok) {
                 const data = await res.json();
-                set({ items: data.items, categories: data.categories });
+                set({
+                    items: data.items,
+                    categories: data.categories,
+                    // Load globalAddons if returned by API, else fetch them separately or default to []
+                    globalAddons: data.globalAddons || []
+                });
             }
         } catch (error) {
             console.error('Failed to fetch menu:', error);
@@ -39,6 +48,46 @@ export const useMenuStore = create<MenuState>((set, get) => ({
             toast.error('Connection failed. Could not load menu.');
         } finally {
             set({ isLoading: false });
+        }
+    },
+
+    fetchGlobalAddons: async () => {
+        try {
+            const res = await fetchWithRetry(`${API_URL}/api/settings`);
+            if (res.ok) {
+                const settings = await res.json();
+                if (settings.global_addons) {
+                    try {
+                        const addons = JSON.parse(settings.global_addons);
+                        set({ globalAddons: addons });
+                    } catch (e) {
+                        console.error('Failed to parse global addons', e);
+                        set({ globalAddons: [] });
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch global addons:', error);
+        }
+    },
+
+    saveGlobalAddons: async (addons) => {
+        try {
+            const res = await fetchWithRetry(`${API_URL}/api/settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'global_addons', value: JSON.stringify(addons) }),
+            });
+            if (res.ok) {
+                set({ globalAddons: addons });
+                toast.success('Global add-ons saved');
+                // Emit event handled by saving setting
+            } else {
+                throw new Error('Failed to save settings');
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to save global add-ons');
         }
     },
 
@@ -173,4 +222,15 @@ socket.on('connect', () => {
 socket.on('menu:update', () => {
     // console.log('Menu update received, refetching...');
     useMenuStore.getState().fetchMenu();
+});
+
+socket.on('settings:update', (setting: { key: string, value: string }) => {
+    if (setting.key === 'global_addons') {
+        try {
+            const addons = JSON.parse(setting.value);
+            useMenuStore.setState({ globalAddons: addons });
+        } catch (e) {
+            console.error('Failed to sync global addons update', e);
+        }
+    }
 });

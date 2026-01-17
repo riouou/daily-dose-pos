@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Minus, Copy } from "lucide-react";
+import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Minus, Copy, Settings } from "lucide-react";
 import { useMenuStore } from '@/store/menuStore';
 import { MenuItem, FlavorSection } from '@/types/pos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -165,6 +165,64 @@ export function MenuManagement() {
         setIsItemDialogOpen(true);
     };
 
+    // Global Add-ons State
+    const [isAddonsDialogOpen, setIsAddonsDialogOpen] = useState(false);
+    const { globalAddons, fetchGlobalAddons, saveGlobalAddons } = useMenuStore();
+    const [localAddons, setLocalAddons] = useState<FlavorSection[]>([]);
+
+    // Manage Global Add-ons
+    const openAddonsDialog = () => {
+        fetchGlobalAddons();
+        setLocalAddons([...globalAddons]);
+        setIsAddonsDialogOpen(true);
+    };
+
+    const handleSaveAddons = async () => {
+        await saveGlobalAddons(localAddons);
+        setIsAddonsDialogOpen(false);
+    };
+
+    // Logic to manage localAddons (very similar to sections/options above, but for global scope)
+    const handleAddGlobalSection = () => {
+        setLocalAddons([...localAddons, { name: 'New Section', options: [], max: 1 }]);
+    };
+
+    const handleUpdateGlobalSectionName = (index: number, name: string) => {
+        const updated = [...localAddons];
+        updated[index].name = name;
+        setLocalAddons(updated);
+    };
+
+    const handleGlobalSectionMaxChange = (index: number, max: number) => {
+        const updated = [...localAddons];
+        updated[index].max = max;
+        setLocalAddons(updated);
+    };
+
+    const handleRemoveGlobalSection = (index: number) => {
+        const updated = [...localAddons];
+        updated.splice(index, 1);
+        setLocalAddons(updated);
+    };
+
+    const handleAddGlobalOption = (sectionIndex: number, optionName: string, price: number = 0) => {
+        const updated = [...localAddons];
+        // Normalize: if price 0, we can just store string, OR we can be consistent and store object.
+        // Let's store object for consistency if price > 0, or if we want to support it later.
+        // Actually, type definition allows (string | FlavorOption). 
+        // For add-ons, price is common, so let's stick to object if price > 0.
+
+        const newOption = price > 0 ? { name: optionName, price } : optionName;
+        updated[sectionIndex].options.push(newOption);
+        setLocalAddons(updated);
+    };
+
+    const handleRemoveGlobalOption = (sectionIndex: number, optionIndex: number) => {
+        const updated = [...localAddons];
+        updated[sectionIndex].options.splice(optionIndex, 1);
+        setLocalAddons(updated);
+    };
+
     const handleDuplicateItem = (item: MenuItem) => {
         // Create a copy but reset ID and append (Copy) to name
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -267,9 +325,14 @@ export function MenuManagement() {
                         <CardTitle>Menu Items</CardTitle>
                         <CardDescription>Add, edit, or remove items</CardDescription>
                     </div>
-                    <Button onClick={openAddDialog}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Item
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" onClick={openAddonsDialog}>
+                            <Settings className="mr-2 h-4 w-4" /> Manage Add-ons
+                        </Button>
+                        <Button onClick={openAddDialog}>
+                            <Plus className="mr-2 h-4 w-4" /> Add Item
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <div className="rounded-md border overflow-x-auto">
@@ -617,6 +680,134 @@ export function MenuManagement() {
                     <div className="flex justify-end gap-2">
                         <Button variant="outline" onClick={() => setIsItemDialogOpen(false)}>Cancel</Button>
                         <Button onClick={handleSaveItem}>Save Changes</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Global Add-ons Dialog */}
+            <Dialog open={isAddonsDialogOpen} onOpenChange={setIsAddonsDialogOpen}>
+                <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Global Add-ons</DialogTitle>
+                        <DialogDescription>
+                            Configure add-ons that will appear for ALL drinks (e.g., Sugar Level, Sinkers).
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-6 py-4">
+                        {localAddons.map((section, sIdx) => (
+                            <div key={sIdx} className="border p-4 rounded-lg bg-secondary/10 space-y-4">
+                                <div className="flex items-center justify-between gap-4">
+                                    <Input
+                                        className="font-semibold"
+                                        value={section.name}
+                                        onChange={(e) => handleUpdateGlobalSectionName(sIdx, e.target.value)}
+                                        placeholder="Section Name (e.g. Add-ons)"
+                                    />
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-sm text-muted-foreground whitespace-nowrap">Max Select:</span>
+                                        <Input
+                                            type="number"
+                                            className="w-16 h-8"
+                                            value={section.max || 1}
+                                            onChange={(e) => handleGlobalSectionMaxChange(sIdx, parseInt(e.target.value) || 1)}
+                                            min={1}
+                                        />
+                                        <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleRemoveGlobalSection(sIdx)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="text-xs uppercase text-muted-foreground font-semibold">Options</Label>
+                                    <div className="flex flex-wrap gap-2">
+                                        {section.options.map((opt, oIdx) => {
+                                            const optName = typeof opt === 'string' ? opt : opt.name;
+                                            const optPrice = typeof opt === 'string' ? 0 : opt.price;
+                                            return (
+                                                <div key={oIdx} className="flex items-center gap-2 bg-background border px-3 py-1.5 rounded-md text-sm">
+                                                    <span>{optName}</span>
+                                                    {optPrice && optPrice > 0 ? (
+                                                        <span className="text-primary font-medium text-xs bg-primary/10 px-1 rounded">+₱{optPrice}</span>
+                                                    ) : null}
+                                                    <button onClick={() => handleRemoveGlobalOption(sIdx, oIdx)} className="text-muted-foreground hover:text-destructive ml-1">
+                                                        <Minus className="h-3 w-3" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Add Option Row */}
+                                    <div className="flex gap-2 items-center mt-2">
+                                        <Input
+                                            id={`new-opt-name-${sIdx}`}
+                                            placeholder="Option Name (e.g. Pearl)"
+                                            className="h-8"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    const nameInput = document.getElementById(`new-opt-name-${sIdx}`) as HTMLInputElement;
+                                                    const priceInput = document.getElementById(`new-opt-price-${sIdx}`) as HTMLInputElement;
+                                                    if (nameInput.value.trim()) {
+                                                        handleAddGlobalOption(sIdx, nameInput.value.trim(), parseFloat(priceInput.value) || 0);
+                                                        nameInput.value = '';
+                                                        priceInput.value = '';
+                                                        nameInput.focus();
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                        <div className="relative w-24 shrink-0">
+                                            <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">₱</span>
+                                            <Input
+                                                id={`new-opt-price-${sIdx}`}
+                                                type="number"
+                                                placeholder="0"
+                                                className="h-8 pl-5"
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        const nameInput = document.getElementById(`new-opt-name-${sIdx}`) as HTMLInputElement;
+                                                        const priceInput = document.getElementById(`new-opt-price-${sIdx}`) as HTMLInputElement;
+                                                        if (nameInput.value.trim()) {
+                                                            handleAddGlobalOption(sIdx, nameInput.value.trim(), parseFloat(priceInput.value) || 0);
+                                                            nameInput.value = '';
+                                                            priceInput.value = '';
+                                                            nameInput.focus();
+                                                        }
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <Button
+                                            size="sm"
+                                            variant="secondary"
+                                            className="h-8"
+                                            onClick={() => {
+                                                const nameInput = document.getElementById(`new-opt-name-${sIdx}`) as HTMLInputElement;
+                                                const priceInput = document.getElementById(`new-opt-price-${sIdx}`) as HTMLInputElement;
+                                                if (nameInput.value.trim()) {
+                                                    handleAddGlobalOption(sIdx, nameInput.value.trim(), parseFloat(priceInput.value) || 0);
+                                                    nameInput.value = '';
+                                                    priceInput.value = '';
+                                                }
+                                            }}
+                                        >
+                                            <Plus className="h-3 w-3" /> Add
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+
+                        <Button variant="outline" className="w-full border-dashed" onClick={handleAddGlobalSection}>
+                            <Plus className="mr-2 h-4 w-4" /> Add New Section
+                        </Button>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-4 border-t">
+                        <Button variant="ghost" onClick={() => setIsAddonsDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleSaveAddons}>Save Settings</Button>
                     </div>
                 </DialogContent>
             </Dialog>

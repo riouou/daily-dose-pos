@@ -2,7 +2,10 @@ import { z } from 'zod';
 
 const flavorSectionSchema = z.object({
     name: z.string(),
-    options: z.array(z.string()),
+    options: z.array(z.union([
+        z.string(),
+        z.object({ name: z.string(), price: z.number().optional() })
+    ])),
     max: z.number().optional()
 });
 

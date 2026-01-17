@@ -3,8 +3,9 @@ import { persist } from 'zustand/middleware';
 import { toast } from 'sonner';
 import { fetchWithRetry } from '@/lib/api';
 import { orderSchema } from '@/lib/schemas';
+import { useMenuStore } from './menuStore';
 
-import { Order, OrderItem, MenuItem } from '@/types/pos';
+import { Order, OrderItem, MenuItem, FlavorSection, FlavorOption } from '@/types/pos';
 
 interface OrderState {
   currentOrder: OrderItem[];
@@ -343,10 +344,46 @@ export const useOrderStore = create<OrderState>()(
       },
 
       getOrderTotal: () => {
-        return get().currentOrder.reduce(
-          (sum, item) => sum + item.menuItem.price * item.quantity,
-          0
-        );
+        const { currentOrder } = get();
+        const { globalAddons } = useMenuStore.getState();
+
+        return currentOrder.reduce((sum, item) => {
+          let itemParamsPrice = 0;
+
+          if (item.selectedFlavors && item.selectedFlavors.length > 0) {
+            // Find price for each selected flavor
+            item.selectedFlavors.forEach(flavorName => {
+              let priceFound = 0;
+
+              // 1. Check Item specific flavors
+              if (Array.isArray(item.menuItem.flavors) && typeof item.menuItem.flavors[0] !== 'string') {
+                const sections = item.menuItem.flavors as FlavorSection[];
+                for (const section of sections) {
+                  const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                  if (option && typeof option !== 'string' && option.price) {
+                    priceFound = option.price;
+                    break;
+                  }
+                }
+              }
+
+              // 2. Check Global Addons (if drink and not found yet)
+              if (priceFound === 0 && item.menuItem.type === 'drink') {
+                for (const section of globalAddons) {
+                  const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                  if (option && typeof option !== 'string' && option.price) {
+                    priceFound = option.price;
+                    break;
+                  }
+                }
+              }
+
+              itemParamsPrice += priceFound;
+            });
+          }
+
+          return sum + (item.menuItem.price + itemParamsPrice) * item.quantity;
+        }, 0);
       },
 
       addIncomingOrder: (order: Order) => {
