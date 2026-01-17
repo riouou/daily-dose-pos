@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { socket } from '@/lib/socket';
 import { API_URL } from '@/lib/config';
-import { OrderStore } from '@/store/orderStore';
+import { useOrderStore } from '@/store/orderStore';
 
 interface LogMessage {
     message: string;
