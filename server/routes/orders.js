@@ -213,9 +213,9 @@ export const createOrderRouter = (io) => {
                     beeperNumber || null,
                     isTest || false,
                     paymentMethod || null,
-                    paymentDetails?.amountTendered ? 'paid' : 'pending',
-                    paymentDetails?.amountTendered || 0,
-                    paymentDetails?.change || 0,
+                    amountTendered ? 'paid' : 'pending',
+                    amountTendered || 0,
+                    changeAmount || 0,
                     req.body.orderType || 'dine-in'
                 ]
             );
