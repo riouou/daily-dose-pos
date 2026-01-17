@@ -60,6 +60,7 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
   const StatusIcon = config.icon;
 
   const [timeAgo, setTimeAgo] = useState('');
+  const [isRecent, setIsRecent] = useState(true);
 
   useEffect(() => {
     const updateTime = () => {
@@ -72,6 +73,13 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
       const diffMs = Math.max(0, Date.now() - d.getTime());
       const seconds = Math.floor(diffMs / 1000);
       const minutes = Math.floor(seconds / 60);
+
+      // Hide "New" badge after 2 minutes
+      if (seconds > 120) {
+        setIsRecent(false);
+      } else {
+        setIsRecent(true);
+      }
 
       if (minutes < 1) {
         setTimeAgo(`Just now (${seconds}s)`);
@@ -120,8 +128,8 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
               <StatusIcon className={cn('w-4 h-4', config.iconColor)} />
             </div>
             <span className="font-bold text-lg tracking-tight font-mona">{order.id}</span>
-            {order.status === 'new' && (
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-warning text-warning-foreground px-1.5 py-0.5 rounded-md animate-pulse">
+            {order.status === 'new' && isRecent && (
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-warning text-warning-foreground px-1.5 py-0.5 rounded-md animate-pulse transition-opacity duration-1000">
                 New
               </span>
             )}

@@ -25,13 +25,32 @@ export default function KitchenPage() {
 
     socket.on('order:new', handleNewOrder);
 
+    // Refetch when socket reconnects (handles network/sleep recovery)
+    socket.on('connect', () => {
+      console.log('Socket reconnected, fetching orders...');
+      fetchOrders();
+    });
+
+    // Refetch when tab becomes visible (handles background throttling)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Tab visible, fetching orders...');
+        fetchOrders();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Polling fallback to ensure sync (every 15s)
     const pollInterval = setInterval(() => {
-      fetchOrders();
+      if (!document.hidden) { // Only poll if visible to save resources/avoid throttling weirdness
+        fetchOrders();
+      }
     }, 15000);
 
     return () => {
       socket.off('order:new', handleNewOrder);
+      socket.off('connect');
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(pollInterval);
     };
   }, [fetchOrders]);
