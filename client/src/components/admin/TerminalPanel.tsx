@@ -90,7 +90,7 @@ export function TerminalPanel() {
         // Client-side Local Storage Flush
         if (command === 'flush-local') {
             addLog('Clearing local storage and reloading...', 'warning');
-            localStorage.removeItem('order-storage'); // Zustand persist key
+            localStorage.removeItem('order-storage-v2'); // Zustand persist key
             // Also explicitly clear store state
             useOrderStore.setState({ orders: [], currentOrder: [], offlineQueue: [], pendingUpdates: {} });
 

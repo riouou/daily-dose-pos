@@ -26,6 +26,11 @@ interface OrderState {
   // Socket actions
   addIncomingOrder: (order: Order) => void;
   updateIncomingOrder: (order: Order) => void;
+
+  // Drink Queue
+  drinkQueue: Order[];
+  addDrinkTicket: (order: Order) => void;
+  completeDrinkTicket: (orderId: string) => void;
 }
 
 import { API_URL } from '../lib/config';
@@ -46,7 +51,9 @@ export const useOrderStore = create<OrderState>()(
     (set, get) => ({
       currentOrder: [],
       orders: [],
+      orders: [],
       offlineQueue: [],
+      drinkQueue: [],
       pendingUpdates: {},
 
       addToOrder: (item: MenuItem, flavors?: string[], quantity: number = 1) => {
@@ -193,6 +200,19 @@ export const useOrderStore = create<OrderState>()(
         }
 
         set({ offlineQueue: remainingQueue });
+      },
+
+      addDrinkTicket: (order: Order) => {
+        set((state) => {
+          if (state.drinkQueue.some(o => o.id === order.id)) return {};
+          return { drinkQueue: [...state.drinkQueue, order] };
+        });
+      },
+
+      completeDrinkTicket: (orderId: string) => {
+        set((state) => ({
+          drinkQueue: state.drinkQueue.filter(o => o.id !== orderId)
+        }));
       },
 
       submitOrder: async (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }, customerName?: string) => {
@@ -474,13 +494,23 @@ export const useOrderStore = create<OrderState>()(
           };
         });
       },
+
+      addDrinkTicket: (orderId: string, item: OrderItem) => {
+        set((state) => ({
+          drinkQueue: [...state.drinkQueue, { orderId, item, timestamp: new Date() }]
+        }));
+      },
+
+      completeDrinkTicket: (orderId: string, itemId: string) => {
+        set((state) => ({
+          drinkQueue: state.drinkQueue.filter(ticket => !(ticket.orderId === orderId && ticket.item.id === itemId))
+        }));
+      },
     }),
     {
-      name: 'order-storage-v2', // Renamed to clear old cache
-      partialize: (state) => ({
-        currentOrder: state.currentOrder, // Keep cart
-        offlineQueue: state.offlineQueue  // Keep offline queue
-      }),
+      // Wait, I can't easily insert into the big object with replace_file_content if I don't see the whole thing.
+      // I will use a larger context or multiple chunks if needed.
+      // Let's look at where `syncOfflineOrders` ends (line 196) and insert there.
     }
   )
 );
