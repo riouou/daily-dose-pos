@@ -187,6 +187,8 @@ export const createOrderRouter = (io) => {
             const newOrderId = `POS-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
             // Insert Order
+            console.log('Inserting Order:', { newOrderId, calcTotal, orderType: req.body.orderType });
+
             const { rows: orderRows } = await client.query(
                 `INSERT INTO orders (
                     id,
