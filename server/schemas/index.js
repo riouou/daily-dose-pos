@@ -49,7 +49,8 @@ export const orderSchema = z.object({
     isTest: z.boolean().optional(),
     paymentMethod: z.enum(['Cash', 'Card', 'Pay Later', 'GCash', 'Bank Transfer']).optional(), // Adjust based on actual values
     amountTendered: z.number().optional(),
-    changeAmount: z.number().optional()
+    changeAmount: z.number().optional(),
+    orderType: z.enum(['dine-in', 'take-out']).optional()
 });
 
 export const settingsSchema = z.object({
