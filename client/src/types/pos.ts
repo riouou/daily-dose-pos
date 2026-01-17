@@ -49,8 +49,10 @@ export type Category = 'All' | 'Basic' | string;
 export interface HistoryItem {
   filename: string;
   date: string;
-  openedAt?: string;
+  openedAt: string;
   closedAt: string;
+  expiresAt: string;
+  isExpired: boolean;
   totalOrders: number;
   totalSales: number;
 }

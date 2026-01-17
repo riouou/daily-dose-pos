@@ -48,8 +48,8 @@ export function HistoryTable({ history, onViewHistory, page, totalPages, onPageC
                                 history.map((item) => (
                                     <TableRow
                                         key={item.filename}
-                                        className="cursor-pointer hover:bg-muted/50 transition-colors"
-                                        onClick={() => onViewHistory(item.filename)}
+                                        className={`transition-colors ${item.isExpired ? 'opacity-60 cursor-not-allowed bg-muted/30' : 'cursor-pointer hover:bg-muted/50'}`}
+                                        onClick={() => !item.isExpired && onViewHistory(item.filename)}
                                     >
                                         <TableCell className="font-medium">
                                             {format(new Date(item.date), 'PP')}
@@ -65,7 +65,11 @@ export function HistoryTable({ history, onViewHistory, page, totalPages, onPageC
                                             ₱{item.totalSales.toLocaleString()}
                                         </TableCell>
                                         <TableCell>
-                                            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                            {item.isExpired ? (
+                                                <span className="text-[10px] font-bold text-muted-foreground bg-secondary px-2 py-1 rounded">EXPIRED</span>
+                                            ) : (
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))

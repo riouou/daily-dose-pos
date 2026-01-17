@@ -742,14 +742,22 @@ app.get('/api/admin/history', async (req, res) => {
             LIMIT $1 OFFSET $2
         `, [limit, offset]);
 
-        const historyList = sessionRows.map(row => ({
-            filename: row.id.toString(),
-            date: new Date(row.closed_at).toLocaleDateString('sv'),
-            openedAt: row.opened_at,
-            closedAt: row.closed_at,
-            totalOrders: parseInt(row.total_orders || 0),
-            totalSales: parseFloat(row.total_sales || 0)
-        }));
+        const historyList = sessionRows.map(row => {
+            const closedDate = new Date(row.closed_at);
+            const expiresAt = new Date(closedDate.getTime() + (24 * 60 * 60 * 1000)); // 24 hours later
+            const isExpired = new Date() > expiresAt;
+
+            return {
+                filename: row.id.toString(),
+                date: new Date(row.closed_at).toLocaleDateString('sv'),
+                openedAt: row.opened_at,
+                closedAt: row.closed_at,
+                expiresAt: expiresAt.toISOString(),
+                isExpired: isExpired,
+                totalOrders: parseInt(row.total_orders || 0),
+                totalSales: parseFloat(row.total_sales || 0)
+            };
+        });
 
         res.json({
             items: historyList,
@@ -781,6 +789,19 @@ app.get('/api/admin/history/:id', async (req, res) => {
             const { rows: sessions } = await query('SELECT * FROM sessions WHERE id = $1', [id]);
             if (sessions.length === 0) return res.status(404).json({ error: 'Session not found' });
             sessionData = sessions[0];
+
+            // Check Expiry (24 hours retention)
+            if (sessionData.closed_at) {
+                const closedDate = new Date(sessionData.closed_at);
+                const expiresAt = new Date(closedDate.getTime() + (24 * 60 * 60 * 1000));
+
+                if (new Date() > expiresAt) {
+                    return res.status(410).json({
+                        error: 'Receipts expired',
+                        message: 'Detailed receipts for this session have been deleted due to the 24-hour retention policy.'
+                    });
+                }
+            }
 
             const { rows: sessionOrders } = await query(
                 `SELECT * FROM orders 

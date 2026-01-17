@@ -1,12 +1,12 @@
-
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { Banknote, FileText } from "lucide-react";
+import { format, differenceInHours, differenceInMinutes, addHours } from "date-fns";
+import { Banknote, Search, Clock, AlertTriangle, Receipt } from "lucide-react";
 import { DetailedHistory } from "@/types/pos";
 
 interface HistoryDialogProps {
@@ -16,135 +16,126 @@ interface HistoryDialogProps {
 }
 
 export function HistoryDialog({ open, onOpenChange, data }: HistoryDialogProps) {
+    const [searchQuery, setSearchQuery] = useState('');
 
-    // Memoized calculation for performance on large datasets
-    const productBreakdown = useMemo(() => {
+    const filteredOrders = useMemo(() => {
         if (!data) return [];
-
-        const itemMap: Record<string, { name: string; quantity: number; sales: number }> = {};
-        data.orders.forEach(order => {
-            order.items.forEach(item => {
-                const id = item.menuItem.id;
-                if (!itemMap[id]) {
-                    itemMap[id] = { name: item.menuItem.name, quantity: 0, sales: 0 };
-                }
-                itemMap[id].quantity += item.quantity;
-                itemMap[id].sales += item.quantity * item.menuItem.price;
-            });
-        });
-        return Object.values(itemMap).sort((a, b) => b.quantity - a.quantity);
-    }, [data]);
+        const lowerQ = searchQuery.toLowerCase();
+        return data.orders.filter(o =>
+            o.id.toLowerCase().includes(lowerQ) ||
+            (o.customerName || '').toLowerCase().includes(lowerQ) ||
+            (o.beeperNumber?.toString() || '').includes(lowerQ) ||
+            (o.tableNumber?.toString() || '').includes(lowerQ)
+        );
+    }, [data, searchQuery]);
 
     if (!data) return null;
 
+    const closedDate = new Date(data.closedAt);
+    const expiresAt = addHours(closedDate, 24);
+    const hoursLeft = differenceInHours(expiresAt, new Date());
+    const minutesLeft = differenceInMinutes(expiresAt, new Date()) % 60;
+    const isExpiringSoon = hoursLeft < 4;
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
-                <div className="p-6 pb-2 border-b">
-                    <DialogHeader>
-                        <DialogTitle>Daily Sales Report</DialogTitle>
-                        <DialogDescription>
-                            Data for {format(new Date(data.date), 'PPPP')}
-                        </DialogDescription>
-                    </DialogHeader>
+            <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0 gap-0">
+                {/* Header Section */}
+                <div className="p-6 border-b bg-muted/10">
+                    <div className="flex items-center justify-between mb-2">
+                        <div>
+                            <DialogTitle className="text-xl">Session Receipts</DialogTitle>
+                            <DialogDescription className="text-muted-foreground">
+                                Date: {format(new Date(data.date), 'PPPP')} • Closed at {format(closedDate, 'p')}
+                            </DialogDescription>
+                        </div>
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${isExpiringSoon ? 'bg-destructive/10 text-destructive border-destructive/20' : 'bg-primary/10 text-primary border-primary/20'}`}>
+                            {isExpiringSoon ? <AlertTriangle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                            <span className="text-xs font-semibold">
+                                Receipts deleted in {hoursLeft}h {minutesLeft}m
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="flex gap-4 mt-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Search by Order ID, Customer, Beeper..."
+                                className="pl-9 bg-background"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
+                        <div className="flex gap-4 items-center px-4 bg-background border rounded-md shadow-sm">
+                            <div className="text-center">
+                                <p className="text-[10px] uppercase text-muted-foreground font-bold">Orders</p>
+                                <p className="text-lg font-bold">{data.totalOrders}</p>
+                            </div>
+                            <div className="h-8 w-px bg-border" />
+                            <div className="text-center">
+                                <p className="text-[10px] uppercase text-muted-foreground font-bold">Total Sales</p>
+                                <p className="text-lg font-bold text-success">₱{data.totalSales.toLocaleString()}</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <ScrollArea className="flex-1 p-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <Card className="bg-secondary/20 border-0">
-                            <CardContent className="p-4 pt-4">
-                                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                                <p className="text-2xl font-bold text-success">₱{data.totalSales.toLocaleString()}</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-secondary/20 border-0">
-                            <CardContent className="p-4 pt-4">
-                                <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-                                <p className="text-2xl font-bold">{data.totalOrders}</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-secondary/20 border-0">
-                            <CardContent className="p-4 pt-4">
-                                <p className="text-sm font-medium text-muted-foreground">Avg. Order Value</p>
-                                <p className="text-2xl font-bold">
-                                    ₱{data.totalOrders > 0
-                                        ? (data.totalSales / data.totalOrders).toFixed(2)
-                                        : '0.00'}
-                                </p>
-                            </CardContent>
-                        </Card>
-                        <Card className="bg-secondary/20 border-0">
-                            <CardContent className="p-4 pt-4">
-                                <p className="text-sm font-medium text-muted-foreground">Closed At</p>
-                                <p className="text-2xl font-bold text-foreground">
-                                    {format(new Date(data.closedAt), 'p')}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <div className="space-y-6">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                <Banknote className="h-5 w-5 text-primary" />
-                                Product Performance
-                            </h3>
-                            <div className="rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Item Name</TableHead>
-                                            <TableHead className="text-right">Sold</TableHead>
-                                            <TableHead className="text-right">Revenue</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {productBreakdown.map((item, idx) => (
-                                            <TableRow key={idx}>
-                                                <TableCell className="font-medium">{item.name}</TableCell>
-                                                <TableCell className="text-right">{item.quantity}</TableCell>
-                                                <TableCell className="text-right">₱{item.sales.toLocaleString()}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                {/* Content Section */}
+                <ScrollArea className="flex-1 bg-muted/5 p-4 md:p-6">
+                    {filteredOrders.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 min-h-[300px]">
+                            <Search className="h-12 w-12 mb-2" />
+                            <p>No receipts found matching "{searchQuery}"</p>
                         </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {filteredOrders.map(order => (
+                                <Card key={order.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                                    <div className="border-b px-4 py-3 flex items-center justify-between bg-muted/10">
+                                        <div className="flex items-center gap-2">
+                                            <Receipt className="h-4 w-4 text-muted-foreground" />
+                                            <span className="font-mono text-sm font-semibold">#{order.id.slice(-4)}</span>
+                                        </div>
+                                        <div className="text-xs text-muted-foreground font-medium">
+                                            {format(new Date(order.createdAt || 0), 'p')}
+                                        </div>
+                                    </div>
+                                    <div className="p-4 space-y-3">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-bold text-lg leading-none mb-1">{order.customerName || 'Guest'}</p>
+                                                <div className="flex gap-2">
+                                                    {order.beeperNumber && <Badge variant="outline" className="text-[10px] px-1 py-0 h-5">Beeper {order.beeperNumber}</Badge>}
+                                                    {order.tableNumber && <Badge variant="outline" className="text-[10px] px-1 py-0 h-5">Table {order.tableNumber}</Badge>}
+                                                </div>
+                                            </div>
+                                            <p className="font-bold text-lg text-primary">₱{order.total.toLocaleString()}</p>
+                                        </div>
 
-                        <div>
-                            <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                                <FileText className="h-5 w-5 text-primary" />
-                                Order Log
-                            </h3>
-                            <div className="rounded-md border">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Time</TableHead>
-                                            <TableHead>Items</TableHead>
-                                            <TableHead className="text-right">Total</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {data.orders.map((order, idx) => (
-                                            <TableRow key={idx}>
-                                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                                                    {order.timestamp || order.createdAt ? format(new Date(order.timestamp || order.createdAt || 0), 'p') : '-'}
-                                                </TableCell>
-                                                <TableCell className="text-sm">
-                                                    {order.items.map(i => `${i.quantity}x ${i.menuItem.name}`).join(', ')}
-                                                </TableCell>
-                                                <TableCell className="text-right font-medium">₱{order.total.toLocaleString()}</TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                                        <div className="space-y-1 pt-2 border-t border-dashed">
+                                            {order.items.map((item, i) => (
+                                                <div key={i} className="text-sm flex justify-between items-start group">
+                                                    <div className="text-muted-foreground leading-snug">
+                                                        <span className="text-foreground font-medium">{item.quantity}x</span> {item.menuItem.name}
+                                                        {item.selectedFlavors && item.selectedFlavors.length > 0 && (
+                                                            <div className="text-[10px] text-muted-foreground/70 pl-5">
+                                                                {item.selectedFlavors.join(', ')}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))}
                         </div>
-                    </div>
+                    )}
                 </ScrollArea>
-                <div className="p-4 border-t flex justify-end">
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Close Report</Button>
+
+                <div className="p-4 border-t flex justify-end bg-background">
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
                 </div>
             </DialogContent>
         </Dialog>
