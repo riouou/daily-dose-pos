@@ -205,15 +205,12 @@ export function HistoryDialog({ open, onOpenChange, data }: HistoryDialogProps) 
                                 <div>
                                     <DialogTitle className="text-xl font-bold flex items-center gap-2">
                                         <Receipt className="h-5 w-5" />
-                                        Receipt #{selectedOrder.id.slice(-4)}
+                                        Receipt {selectedOrder.id.slice(-4)}
                                     </DialogTitle>
                                     <DialogDescription className="text-xs mt-1">
                                         {format(new Date(selectedOrder.createdAt), 'PPP p')}
                                     </DialogDescription>
                                 </div>
-                                <Button size="icon" variant="ghost" onClick={() => setSelectedOrder(null)}>
-                                    <div className="h-4 w-4">✕</div>
-                                </Button>
                             </div>
 
                             <ScrollArea className="flex-1 p-6">
