@@ -494,13 +494,15 @@ export const useOrderStore = create<OrderState>()(
         });
       },
 
-    },
     }),
-{
-  // Wait, I can't easily insert into the big object with replace_file_content if I don't see the whole thing.
-  // I will use a larger context or multiple chunks if needed.
-  // Let's look at where `syncOfflineOrders` ends (line 196) and insert there.
-}
+    {
+      name: 'order-storage-v2',
+      partialize: (state) => ({
+        currentOrder: state.currentOrder,
+        offlineQueue: state.offlineQueue,
+        drinkQueue: state.drinkQueue
+      }),
+    }
   )
 );
 
