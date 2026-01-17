@@ -183,9 +183,13 @@ export const createOrderRouter = (io) => {
             // Allow `amountTendered` to overwrite if needed (unlikely) or just use `calcTotal`.
             // Wait, if `amountTendered` is provided, we can verify it covers total.
 
+            // Generate Order ID
+            const newOrderId = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
             // Insert Order
             const { rows: orderRows } = await client.query(
                 `INSERT INTO orders (
+                    id,
                     customer_name, 
                     total_amount, 
                     status, 
@@ -196,8 +200,9 @@ export const createOrderRouter = (io) => {
                     payment_status,
                     amount_tendered,
                     change_amount
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`,
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
                 [
+                    newOrderId,
                     customerName || 'Guest',
                     calcTotal, // Using calculated base total (Might be slightly off if addons not summed, but safer than untrusted?) 
                     // Actually, let's trust the client logic for now on exact calculation if complexity is high?

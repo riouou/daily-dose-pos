@@ -200,5 +200,75 @@ export const createAdminRouter = (io) => {
         }
     });
 
+    // POST /api/admin/command (Developer Console)
+    router.post('/command', async (req, res) => {
+        const { command, args } = req.body;
+        const logs = [];
+
+        try {
+            switch (command) {
+                case 'help':
+                    logs.push(
+                        { message: 'Available commands:', type: 'info' },
+                        { message: '  seed [count] - Generate dummy orders', type: 'info' },
+                        { message: '  clear - Clear console', type: 'info' },
+                        { message: '  version - Show server version', type: 'info' },
+                        { message: '  maintenance [on|off] - Toggle maintenance mode', type: 'info' }
+                    );
+                    break;
+
+                case 'version':
+                    logs.push({ message: 'Daily Dose POS Server v1.0.0 (Refactored)', type: 'success' });
+                    break;
+
+                case 'maintenance':
+                    if (args[0] === 'on') {
+                        AppState.isMaintenance = true;
+                        logs.push({ message: 'Maintenance Mode ENABLED. Store is closed.', type: 'warning' });
+                    } else if (args[0] === 'off') {
+                        AppState.isMaintenance = false;
+                        logs.push({ message: 'Maintenance Mode DISABLED. Store is open.', type: 'success' });
+                    } else {
+                        logs.push({ message: 'Usage: maintenance [on|off]', type: 'error' });
+                    }
+                    io.emit('session:update', { maintenance: AppState.isMaintenance });
+                    break;
+
+                case 'seed':
+                    const count = parseInt(args[0]) || 5;
+                    logs.push({ message: `Seeding ${count} dummy orders...`, type: 'info' });
+
+                    // Simple Seeder Logic
+                    const { rows: items } = await query('SELECT * FROM menu_items WHERE deleted = FALSE LIMIT 5');
+                    if (items.length === 0) {
+                        logs.push({ message: 'No menu items found to seed with.', type: 'error' });
+                        break;
+                    }
+
+                    for (let i = 0; i < count; i++) {
+                        const randomItem = items[Math.floor(Math.random() * items.length)];
+                        await query(
+                            `INSERT INTO orders (customer_name, total_amount, status, is_test, payment_method, payment_status, created_at)
+                             VALUES ($1, $2, 'completed', TRUE, 'Cash', 'paid', NOW() - (random() * interval '7 days'))`,
+                            [`Test User ${i + 1}`, parseFloat(randomItem.price),]
+                        );
+                        // Note: Skipping detail items for speed, or add if needed.
+                    }
+                    logs.push({ message: 'Seeding complete.', type: 'success' });
+                    io.emit('order:update', {}); // Trigger refresh
+                    break;
+
+                default:
+                    logs.push({ message: `Unknown command: ${command}`, type: 'error' });
+            }
+
+            res.json(logs);
+
+        } catch (err) {
+            console.error('Command failed:', err);
+            res.status(500).json([{ message: 'Internal Server Error', type: 'error' }]);
+        }
+    });
+
     return router;
 };
