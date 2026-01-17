@@ -282,4 +282,4 @@ export function HistoryDialog({ open, onOpenChange, data }: HistoryDialogProps) 
             </Dialog>
         </>
     );
-    ```
+}
