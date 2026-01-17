@@ -224,6 +224,21 @@ export default function AdminDashboard() {
                                 status={sessionStatus}
                                 onCloseDay={handleCloseDay}
                                 onOpenDay={handleOpenDay}
+                                onViewReceipts={() => {
+                                    const sessionData: DetailedHistory = {
+                                        date: new Date().toISOString(),
+                                        openedAt: new Date().toISOString(),
+                                        closedAt: new Date().toISOString(), // Acting as "now"
+                                        totalOrders: stats.orders,
+                                        totalSales: stats.sales,
+                                        orders: activeOrders,
+                                        // Live session doesn't expire yet
+                                        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+                                        isExpired: false
+                                    };
+                                    setSelectedHistory(sessionData);
+                                    setIsHistoryOpen(true);
+                                }}
                             />
                         </div>
 

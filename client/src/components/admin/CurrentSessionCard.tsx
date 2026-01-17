@@ -11,9 +11,10 @@ interface CurrentSessionCardProps {
     status: 'OPEN' | 'CLOSED';
     onCloseDay: () => void;
     onOpenDay: () => void;
+    onViewReceipts: () => void;
 }
 
-export function CurrentSessionCard({ stats, isLoading, status, onCloseDay, onOpenDay }: CurrentSessionCardProps) {
+export function CurrentSessionCard({ stats, isLoading, status, onCloseDay, onOpenDay, onViewReceipts }: CurrentSessionCardProps) {
     const isClosed = status === 'CLOSED';
 
     return (
@@ -46,7 +47,7 @@ export function CurrentSessionCard({ stats, isLoading, status, onCloseDay, onOpe
                     </div>
                 </div>
 
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t space-y-3">
                     {isClosed ? (
                         <Button
                             size="lg"
@@ -59,6 +60,16 @@ export function CurrentSessionCard({ stats, isLoading, status, onCloseDay, onOpe
                         </Button>
                     ) : (
                         <>
+                            <Button
+                                variant="outline"
+                                size="lg"
+                                onClick={onViewReceipts}
+                                className="w-full"
+                            >
+                                <Banknote className="mr-2 h-5 w-5" />
+                                View Receipts
+                            </Button>
+
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button

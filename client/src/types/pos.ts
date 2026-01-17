@@ -66,7 +66,10 @@ export interface AnalyticsData {
 
 export interface DetailedHistory {
   date: string;
+  openedAt?: string;
   closedAt: string;
+  expiresAt?: string;
+  isExpired?: boolean;
   totalOrders: number;
   totalSales: number;
   orders: Order[];
