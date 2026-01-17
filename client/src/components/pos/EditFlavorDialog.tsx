@@ -22,6 +22,8 @@ interface EditFlavorDialogProps {
 }
 
 export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onConfirm }: EditFlavorDialogProps) {
+    if (!item) return null;
+
     const { globalAddons } = useMenuStore();
     const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
     const [sectionSelections, setSectionSelections] = useState<Record<number, string[]>>({});
