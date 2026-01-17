@@ -118,44 +118,6 @@ export function OrderPanel() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{orderItem.menuItem.name}</p>
                     {orderItem.selectedFlavors && orderItem.selectedFlavors.length > 0 && (
-                      <div className="text-xs text-primary/80 font-medium my-0.5 flex flex-wrap gap-1">
-                        {orderItem.selectedFlavors.map((flavor, idx) => {
-                          let price = 0;
-                          // 1. Check Item Specific
-                          if (Array.isArray(orderItem.menuItem.flavors) && orderItem.menuItem.flavors.length > 0 && typeof orderItem.menuItem.flavors[0] !== 'string') {
-                            const sections = orderItem.menuItem.flavors as FlavorSection[];
-                            for (const s of sections) {
-                              const opt = s.options?.find(o => (typeof o === 'string' ? o : o.name) === flavor);
-                              if (opt && typeof opt !== 'string' && opt.price) {
-                                price = opt.price;
-                                break;
-                              }
-                            }
-                          }
-
-                          // 2. Check Global
-                          if (price === 0) {
-                            const { globalAddons } = useMenuStore.getState();
-                            // Filter relevant sections first
-                            const relevantAddons = globalAddons.filter(addon => {
-                              if (addon.allowedCategories) {
-                                return addon.allowedCategories.includes(orderItem.menuItem.category);
-                              }
-                              const addonAny = addon as any;
-                              if (addonAny.allowedTypes) {
-                                return addonAny.allowedTypes.includes(orderItem.menuItem.type);
-                              }
-                              return orderItem.menuItem.type === 'drink';
-                            });
-
-                            for (const s of relevantAddons) {
-                              const opt = s.options?.find(o => (typeof o === 'string' ? o : o.name) === flavor);
-                              if (opt && typeof opt !== 'string' && opt.price) {
-                                price = opt.price;
-                                break;
-                              }
-                            }
-                          }
 
                           return (
                             <span key={idx} className="after:content-[','] last:after:content-['']">
@@ -228,7 +190,7 @@ export function OrderPanel() {
             className="text-right font-medium"
           />
         </div>
-    </div>
+    </div >
 
 
             </div >
