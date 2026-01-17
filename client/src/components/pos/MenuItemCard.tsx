@@ -180,33 +180,38 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
                       <h4 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">{section.name}</h4>
                       <span className="text-xs text-muted-foreground">Max: {section.max || 1}</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {section.options.map((opt) => {
-                        const optName = typeof opt === 'string' ? opt : opt.name;
-                        const optPrice = typeof opt === 'string' ? 0 : opt.price;
-                        return (
-                          <Button
-                            key={optName}
-                            variant={isSectionSelected(idx, optName) ? "default" : "outline"}
-                            className={cn(
-                              "w-full h-12 text-sm justify-start px-4 transition-all focus-visible:ring-0 focus-visible:ring-offset-0",
-                              isSectionSelected(idx, optName) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
-                            )}
-                            onClick={() => toggleSectionFlavor(idx, optName, section.max)}
-                          >
-                            <div className="flex-1 text-left truncate flex items-center justify-between">
-                              <span>{optName}</span>
-                              {optPrice && optPrice > 0 ? (
-                                <span className={cn("text-xs font-semibold px-1 rounded", isSectionSelected(idx, optName) ? "bg-white/20" : "bg-primary/10 text-primary")}>
-                                  +₱{optPrice}
-                                </span>
-                              ) : null}
-                            </div>
-                            {isSectionSelected(idx, optName) && <div className="w-2 h-2 rounded-full bg-white ml-2" />}
-                          </Button>
-                        );
-                      })}
-                    </div>
+                    {(!section.options) ? (
+                      <div className="text-xs text-muted-foreground py-2">No options available</div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-2">
+
+                        {section.options.map((opt) => {
+                          const optName = typeof opt === 'string' ? opt : opt.name;
+                          const optPrice = typeof opt === 'string' ? 0 : opt.price;
+                          return (
+                            <Button
+                              key={optName}
+                              variant={isSectionSelected(idx, optName) ? "default" : "outline"}
+                              className={cn(
+                                "w-full h-12 text-sm justify-start px-4 transition-all focus-visible:ring-0 focus-visible:ring-offset-0",
+                                isSectionSelected(idx, optName) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
+                              )}
+                              onClick={() => toggleSectionFlavor(idx, optName, section.max)}
+                            >
+                              <div className="flex-1 text-left truncate flex items-center justify-between">
+                                <span>{optName}</span>
+                                {optPrice && optPrice > 0 ? (
+                                  <span className={cn("text-xs font-semibold px-1 rounded", isSectionSelected(idx, optName) ? "bg-white/20" : "bg-primary/10 text-primary")}>
+                                    +₱{optPrice}
+                                  </span>
+                                ) : null}
+                              </div>
+                              {isSectionSelected(idx, optName) && <div className="w-2 h-2 rounded-full bg-white ml-2" />}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
