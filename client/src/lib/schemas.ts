@@ -17,7 +17,7 @@ export const orderSchema = z.object({
     tableNumber: z.number().int().positive().optional().nullable(),
     beeperNumber: z.number().int().positive().optional().nullable(),
     isTest: z.boolean().optional(),
-    paymentMethod: z.enum(['Cash', 'Card', 'Pay Later']).optional(),
+    paymentMethod: z.enum(['Cash', 'Card', 'Pay Later', 'GCash', 'Bank Transfer']).optional(),
     amountTendered: z.number().optional(),
     changeAmount: z.number().optional()
 });
