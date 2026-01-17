@@ -135,15 +135,29 @@ export const useOrderStore = create<OrderState>()(
       },
 
       syncOfflineOrders: async () => {
-        const { offlineQueue } = get();
+        const { offlineQueue, orders } = get();
         if (offlineQueue.length === 0) return;
 
         toast.info(`Syncing ${offlineQueue.length} offline orders...`);
 
-        const remainingQueue = [];
+        const remainingQueue: Order[] = [];
 
         for (const orderPayload of offlineQueue) {
           try {
+            // Fuzzy duplicate check
+            const isDuplicate = orders.some(existing =>
+              existing.customerName === orderPayload.customerName &&
+              Math.abs(existing.total - orderPayload.total) < 0.01 &&
+              existing.items.length === orderPayload.items.length &&
+              new Date(existing.createdAt).getTime() > new Date(orderPayload.createdAt).getTime() // Existing is newer or same
+            );
+
+            if (isDuplicate) {
+              console.log('Skipping duplicate offline order:', orderPayload.id);
+              // Don't add to remainingQueue, effectively removing it
+              continue;
+            }
+
             const response = await fetchWithRetry(`${API_URL}/api/orders`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -156,12 +170,25 @@ export const useOrderStore = create<OrderState>()(
               set((state) => ({
                 orders: [createdOrder, ...state.orders]
               }));
-              toast.success(`Order ${orderPayload.id} synced!`);
+              toast.success(`Order synced!`);
+            } else {
+              // If validation error (400), don't retry.
+              if (response.status === 400 || response.status === 500) {
+                console.error('Offline order rejected permanently:', response.status);
+                // Drop it
+              } else {
+                remainingQueue.push(orderPayload);
+              }
+            }
+          } catch (e) {
+            const err = e as Error;
+            // If store is closed or network error, keep it.
+            // If validation error, drop it.
+            if (err.message.toLowerCase().includes('validation')) {
+              console.error('Dropping invalid offline order');
             } else {
               remainingQueue.push(orderPayload);
             }
-          } catch (e) {
-            remainingQueue.push(orderPayload);
           }
         }
 
