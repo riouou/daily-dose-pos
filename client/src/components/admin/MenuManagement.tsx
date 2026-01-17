@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -184,7 +185,7 @@ export function MenuManagement() {
 
     // Logic to manage localAddons (very similar to sections/options above, but for global scope)
     const handleAddGlobalSection = () => {
-        setLocalAddons([...localAddons, { name: 'New Section', options: [], max: 1 }]);
+        setLocalAddons([...localAddons, { name: 'New Section', options: [], max: 1, allowedTypes: ['food', 'drink'] }]);
     };
 
     const handleUpdateGlobalSectionName = (index: number, name: string) => {
@@ -196,6 +197,26 @@ export function MenuManagement() {
     const handleGlobalSectionMaxChange = (index: number, max: number) => {
         const updated = [...localAddons];
         updated[index].max = max;
+        setLocalAddons(updated);
+    };
+
+    const handleGlobalSectionTypeToggle = (index: number, type: 'food' | 'drink') => {
+        const updated = [...localAddons];
+        const section = updated[index];
+        // If undefined, it means ALL. Initialize it.
+        // Wait, if undefined it means "All" (legacy/default). 
+        // If we toggle one OFF, then we must define the array with the OTHER one.
+        // If we toggle one ON, we add to array.
+
+        let currentTypes = section.allowedTypes || ['food', 'drink'];
+
+        if (currentTypes.includes(type)) {
+            currentTypes = currentTypes.filter(t => t !== type);
+        } else {
+            currentTypes = [...currentTypes, type];
+        }
+
+        updated[index].allowedTypes = currentTypes;
         setLocalAddons(updated);
     };
 
@@ -713,7 +734,27 @@ export function MenuManagement() {
                                         placeholder="Section Name (e.g. Add-ons)"
                                     />
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <span className="text-sm text-muted-foreground whitespace-nowrap">Max Select:</span>
+                                        <span className="text-sm text-muted-foreground whitespace-nowrap">Apply to:</span>
+                                        <div className="flex items-center gap-1 border rounded px-1">
+                                            <Button
+                                                variant={(!section.allowedTypes || section.allowedTypes.includes('food')) ? "secondary" : "ghost"}
+                                                size="sm"
+                                                className={cn("h-6 text-xs px-2", (!section.allowedTypes || section.allowedTypes.includes('food')) && "bg-primary/20 text-primary hover:bg-primary/30")}
+                                                onClick={() => handleGlobalSectionTypeToggle(sIdx, 'food')}
+                                            >
+                                                Food
+                                            </Button>
+                                            <Button
+                                                variant={(!section.allowedTypes || section.allowedTypes.includes('drink')) ? "secondary" : "ghost"}
+                                                size="sm"
+                                                className={cn("h-6 text-xs px-2", (!section.allowedTypes || section.allowedTypes.includes('drink')) && "bg-primary/20 text-primary hover:bg-primary/30")}
+                                                onClick={() => handleGlobalSectionTypeToggle(sIdx, 'drink')}
+                                            >
+                                                Drink
+                                            </Button>
+                                        </div>
+
+                                        <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">Max Select:</span>
                                         <Input
                                             type="number"
                                             className="w-16 h-8"

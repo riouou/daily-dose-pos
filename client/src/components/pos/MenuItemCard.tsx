@@ -34,8 +34,16 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   // Check if the item ITSELF has categorized flavors
   const hasCategorizedFlavors = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
 
-  // We use the categorized UI if it has categories OR if it's a drink (to show sections + global addons)
-  const isCategorized = hasCategorizedFlavors || item.type === 'drink';
+  // Filter global addons applicable to this item type
+  const applicableGlobalAddons = globalAddons.filter(addon => {
+    // Legacy support: if allowedTypes is undefined, assume it's for drinks only (previous behavior)
+    // OR if user explicitly set it.
+    if (!addon.allowedTypes) return item.type === 'drink';
+    return addon.allowedTypes.includes(item.type as 'food' | 'drink');
+  });
+
+  // We use the categorized UI if it has categories OR if there are any global addons applicable
+  const isCategorized = hasCategorizedFlavors || applicableGlobalAddons.length > 0;
 
   // Build sections list
   let sections: FlavorSection[] = [];
@@ -44,8 +52,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
     // Already has sections, use them
     sections = [...(item.flavors as FlavorSection[])];
   } else if (item.flavors && item.flavors.length > 0) {
-    // Has simple flavors (strings), but we need to show them as a section because we are in categorized mode (likely a drink)
-    // or if we just want to unify the UI for drinks
+    // Has simple flavors (strings), but we need to show them as a section because we are in categorized mode 
     if (isCategorized) {
       sections = [{
         name: 'Options',
@@ -55,13 +62,13 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
     }
   }
 
-  // Append global addons for drinks
-  if (item.type === 'drink') {
-    sections = [...sections, ...globalAddons];
+  // Append applicable global addons
+  if (applicableGlobalAddons.length > 0) {
+    sections = [...sections, ...applicableGlobalAddons];
   }
 
   const handleClick = () => {
-    if ((item.flavors && item.flavors.length > 0) || (item.type === 'drink' && globalAddons.length > 0)) {
+    if ((item.flavors && item.flavors.length > 0) || applicableGlobalAddons.length > 0) {
       setSelectedFlavors([]); // Reset simple
       setSectionSelections({}); // Reset categorized
       setIsDialogOpen(true);

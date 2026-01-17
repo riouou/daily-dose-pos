@@ -144,10 +144,16 @@ export function OrderPanel() {
                         }
                       }
 
-                      // 2. Check Global (if drink)
-                      if (price === 0 && orderItem.menuItem.type === 'drink') {
+                      // 2. Check Global
+                      if (price === 0) {
                         const { globalAddons } = useMenuStore.getState();
-                        for (const s of globalAddons) {
+                        // Filter relevant sections first
+                        const relevantAddons = globalAddons.filter(addon => {
+                          if (!addon.allowedTypes) return orderItem.menuItem.type === 'drink';
+                          return addon.allowedTypes.includes(orderItem.menuItem.type as any);
+                        });
+
+                        for (const s of relevantAddons) {
                           const opt = s.options?.find(o => (typeof o === 'string' ? o : o.name) === flavor);
                           if (opt && typeof opt !== 'string' && opt.price) {
                             price = opt.price;

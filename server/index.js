@@ -455,9 +455,16 @@ app.post('/api/orders', validate(orderSchema), async (req, res) => {
                         }
                     }
 
-                    // 2. Check Global Addons (if drink)
-                    if (priceFound === 0 && dbItem.type === 'drink') {
+                    // 2. Check Global Addons
+                    if (priceFound === 0) {
                         for (const section of globalAddons) {
+                            // Check compatibility
+                            const isCompatible = (!section.allowedTypes)
+                                ? dbItem.type === 'drink'
+                                : section.allowedTypes.includes(dbItem.type);
+
+                            if (!isCompatible) continue;
+
                             const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
                             if (option && typeof option !== 'string' && option.price) {
                                 priceFound = option.price;

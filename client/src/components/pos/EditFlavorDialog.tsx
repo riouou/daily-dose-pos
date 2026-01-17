@@ -30,7 +30,14 @@ export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onC
 
     // Logic to determine sections (DUPLICATED from MenuItemCard - keep in sync)
     const hasCategorizedFlavors = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
-    const isCategorized = hasCategorizedFlavors || item.type === 'drink';
+
+    // Filter global addons applicable to this item type
+    const applicableGlobalAddons = globalAddons.filter(addon => {
+        if (!addon.allowedTypes) return item.type === 'drink';
+        return addon.allowedTypes.includes(item.type as 'food' | 'drink');
+    });
+
+    const isCategorized = hasCategorizedFlavors || applicableGlobalAddons.length > 0;
 
     let sections: FlavorSection[] = [];
     if (hasCategorizedFlavors) {
@@ -44,8 +51,9 @@ export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onC
             }];
         }
     }
-    if (item.type === 'drink') {
-        sections = [...sections, ...globalAddons];
+    // Append applicable global addons
+    if (applicableGlobalAddons.length > 0) {
+        sections = [...sections, ...applicableGlobalAddons];
     }
 
     const simpleFlavors = !isCategorized ? (item.flavors as string[]) : [];
