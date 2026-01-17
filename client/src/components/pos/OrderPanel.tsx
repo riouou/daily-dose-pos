@@ -158,11 +158,11 @@ export function OrderPanel() {
 
           <div className="p-4 bg-white/5 border-t border-border/10 space-y-4">
             <div className="flex bg-secondary/50 p-1 rounded-lg">
-              <ToggleGroup type="single" value={orderType} onValueChange={(val) => val && setOrderType(val as any)} className="w-full">
-                <ToggleGroupItem value="dine-in" className="flex-1 data-[state=on]:bg-blue-600 data-[state=on]:text-white transition-all">
+              <ToggleGroup type="single" value={orderType} onValueChange={(val) => val && setOrderType(val as any)} className="w-full gap-2">
+                <ToggleGroupItem value="dine-in" className="flex-1 data-[state=on]:bg-blue-600 data-[state=on]:text-white data-[state=on]:font-bold data-[state=on]:shadow-md transition-all hover:bg-blue-100 data-[state=on]:hover:bg-blue-700">
                   Dine In
                 </ToggleGroupItem>
-                <ToggleGroupItem value="take-out" className="flex-1 data-[state=on]:bg-orange-500 data-[state=on]:text-white transition-all">
+                <ToggleGroupItem value="take-out" className="flex-1 data-[state=on]:bg-orange-600 data-[state=on]:text-white data-[state=on]:font-bold data-[state=on]:shadow-md transition-all hover:bg-orange-100 data-[state=on]:hover:bg-orange-700">
                   Take Out
                 </ToggleGroupItem>
               </ToggleGroup>

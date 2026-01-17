@@ -126,11 +126,11 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
               </span>
             )}
             {order.orderType === 'take-out' ? (
-              <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-none">
+              <Badge className="bg-orange-600 hover:bg-orange-700 text-white border-none font-bold px-3 py-1 text-xs uppercase tracking-wide shadow-sm shadow-orange-900/20">
                 Take Out
               </Badge>
             ) : (
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300">
+              <Badge className="bg-blue-600 hover:bg-blue-700 text-white border-none font-bold px-3 py-1 text-xs uppercase tracking-wide shadow-sm shadow-blue-900/20">
                 Dine In
               </Badge>
             )}
