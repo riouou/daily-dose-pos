@@ -115,7 +115,7 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
 
       <div className="relative flex items-start justify-between mb-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-1 flex-wrap gap-y-2">
             <div className={cn("p-1.5 rounded-lg flex items-center justify-center shadow-sm", config.iconBg)}>
               <StatusIcon className={cn('w-4 h-4', config.iconColor)} />
             </div>
@@ -126,11 +126,11 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
               </span>
             )}
             {order.orderType === 'take-out' ? (
-              <Badge className="bg-orange-600 hover:bg-orange-700 text-white border-none font-bold px-3 py-1 text-xs uppercase tracking-wide shadow-sm shadow-orange-900/20">
+              <Badge className="bg-orange-600 hover:bg-orange-700 text-white border-none font-bold px-2.5 py-0.5 text-xs uppercase tracking-wide shadow-sm shadow-orange-900/20">
                 Take Out
               </Badge>
             ) : (
-              <Badge className="bg-blue-600 hover:bg-blue-700 text-white border-none font-bold px-3 py-1 text-xs uppercase tracking-wide shadow-sm shadow-blue-900/20">
+              <Badge className="bg-blue-600 hover:bg-blue-700 text-white border-none font-bold px-2.5 py-0.5 text-xs uppercase tracking-wide shadow-sm shadow-blue-900/20">
                 Dine In
               </Badge>
             )}
