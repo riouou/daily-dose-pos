@@ -243,19 +243,28 @@ export const useOrderStore = create<OrderState>()(
               };
             });
           } else {
+            const errorData = await response.json().catch(() => ({}));
             if (response.status === 403) {
-              const errorData = await response.json();
               throw new Error(errorData.error || "Store is closed");
             }
-            throw new Error("Server error");
+            if (response.status === 400 || response.status === 500) {
+              // Validation or Server Error: Do not queue offline.
+              throw new Error(errorData.error || `Server Error: ${response.status}`);
+            }
+            throw new Error("Network response was not ok");
           }
         } catch (error) {
           const err = error as Error;
-          if (err.message.toLowerCase().includes('store is closed')) {
-            // Revert optimistic update
+          const msg = err.message.toLowerCase();
+
+          if (msg.includes('store is closed') || msg.includes('validation') || msg.includes('server error')) {
+            // Revert optimistic update for permanent errors
             set((state) => ({
               orders: state.orders.filter(o => o.id !== newOrderPayload.id)
             }));
+            toast.error(err.message);
+            // Don't rethrow if we handled it, but maybe UI needs to know? 
+            // OrderPanel catches it to show Alert Dialog. So rethrow is good.
             throw err;
           }
 
