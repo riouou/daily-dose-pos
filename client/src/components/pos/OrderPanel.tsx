@@ -2,6 +2,8 @@ import { Minus, Plus, Trash2, ShoppingCart, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOrderStore } from '@/store/orderStore';
+import { useMenuStore } from '@/store/menuStore';
+import { FlavorSection } from '@/types/pos';
 import { toast } from 'sonner';
 import { useState } from 'react';
 import {
@@ -82,9 +84,40 @@ export function OrderPanel() {
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{orderItem.menuItem.name}</p>
                 {orderItem.selectedFlavors && orderItem.selectedFlavors.length > 0 && (
-                  <p className="text-xs text-primary/80 font-medium my-0.5">
-                    {orderItem.selectedFlavors.join(', ')}
-                  </p>
+                  <div className="text-xs text-primary/80 font-medium my-0.5 flex flex-wrap gap-1">
+                    {orderItem.selectedFlavors.map((flavor, idx) => {
+                      let price = 0;
+                      // 1. Check Item Specific
+                      if (Array.isArray(orderItem.menuItem.flavors) && orderItem.menuItem.flavors.length > 0 && typeof orderItem.menuItem.flavors[0] !== 'string') {
+                        const sections = orderItem.menuItem.flavors as FlavorSection[];
+                        for (const s of sections) {
+                          const opt = s.options?.find(o => (typeof o === 'string' ? o : o.name) === flavor);
+                          if (opt && typeof opt !== 'string' && opt.price) {
+                            price = opt.price;
+                            break;
+                          }
+                        }
+                      }
+
+                      // 2. Check Global (if drink)
+                      if (price === 0 && orderItem.menuItem.type === 'drink') {
+                        const { globalAddons } = useMenuStore.getState();
+                        for (const s of globalAddons) {
+                          const opt = s.options?.find(o => (typeof o === 'string' ? o : o.name) === flavor);
+                          if (opt && typeof opt !== 'string' && opt.price) {
+                            price = opt.price;
+                            break;
+                          }
+                        }
+                      }
+
+                      return (
+                        <span key={idx} className="after:content-[','] last:after:content-['']">
+                          {flavor} {price > 0 && `(+₱${price})`}
+                        </span>
+                      );
+                    })}
+                  </div>
                 )}
                 <p className="text-sm text-muted-foreground">
                   ₱{orderItem.menuItem.price.toFixed(2)} each
