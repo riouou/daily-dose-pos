@@ -4,9 +4,10 @@ import { format } from "date-fns";
 
 interface SystemInfoCardProps {
     lastClosed?: string;
+    status: 'OPEN' | 'CLOSED';
 }
 
-export function SystemInfoCard({ lastClosed }: SystemInfoCardProps) {
+export function SystemInfoCard({ lastClosed, status }: SystemInfoCardProps) {
     return (
         <Card>
             <CardHeader>
@@ -16,7 +17,9 @@ export function SystemInfoCard({ lastClosed }: SystemInfoCardProps) {
                 <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span>Server Status:</span>
-                        <span className="text-success font-medium">Online</span>
+                        <span className={status === 'OPEN' ? "text-success font-medium" : "text-warning font-medium"}>
+                            {status === 'OPEN' ? 'Online' : 'Maintenance Mode'}
+                        </span>
                     </div>
                     <div className="flex justify-between">
                         <span>Data Storage:</span>

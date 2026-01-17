@@ -234,6 +234,32 @@ export const createAdminRouter = (io) => {
                     io.emit('session:update', { maintenance: AppState.isMaintenance });
                     break;
 
+                case 'test-mode':
+                    if (args[0] === 'on') {
+                        AppState.isTest = true;
+                        logs.push({ message: 'Test Mode ENABLED.', type: 'warning' });
+                    } else if (args[0] === 'off') {
+                        AppState.isTest = false;
+                        logs.push({ message: 'Test Mode DISABLED.', type: 'success' });
+                    } else {
+                        logs.push({ message: 'Usage: test-mode [on|off]', type: 'error' });
+                    }
+                    break;
+
+                case 'delete-analytics':
+                    // Wipes orders and sessions to reset analytics
+                    try {
+                        await query('TRUNCATE TABLE order_items CASCADE');
+                        await query('TRUNCATE TABLE orders CASCADE');
+                        await query('TRUNCATE TABLE sessions CASCADE');
+                        logs.push({ message: 'All analytics and orders have been wiped.', type: 'success' });
+                        io.emit('order:update', {});
+                        io.emit('session:update', {});
+                    } catch (e) {
+                        logs.push({ message: 'Failed to wipe analytics: ' + e.message, type: 'error' });
+                    }
+                    break;
+
                 case 'seed':
                     const count = parseInt(args[0]) || 5;
                     logs.push({ message: `Seeding ${count} dummy orders...`, type: 'info' });
@@ -247,12 +273,22 @@ export const createAdminRouter = (io) => {
 
                     for (let i = 0; i < count; i++) {
                         const randomItem = items[Math.floor(Math.random() * items.length)];
+                        // Generate POS ID
+                        const newOrderId = `POS-SEED-${Date.now()}-${i}`;
+
                         await query(
-                            `INSERT INTO orders (customer_name, total_amount, status, is_test, payment_method, payment_status, created_at)
-                             VALUES ($1, $2, 'completed', TRUE, 'Cash', 'paid', NOW() - (random() * interval '7 days'))`,
-                            [`Test User ${i + 1}`, parseFloat(randomItem.price),]
+                            `INSERT INTO orders (id, customer_name, total_amount, status, is_test, payment_method, payment_status, created_at)
+                             VALUES ($1, $2, $3, 'completed', TRUE, 'Cash', 'paid', NOW() - (random() * interval '7 days'))`,
+                            [newOrderId, `Test User ${i + 1}`, parseFloat(randomItem.price)]
                         );
-                        // Note: Skipping detail items for speed, or add if needed.
+                        // Optional: Insert item detail for analytics validity?
+                        // For faster seeding, we skip, but it might affect "Top Items" analytics if we rely on order_items table.
+                        // Let's add the item to order_items to make analytics work properly.
+                        await query(
+                            `INSERT INTO order_items (order_id, menu_item_id, menu_item_name_snapshot, menu_item_price_snapshot, quantity, selected_flavors)
+                             VALUES ($1, $2, $3, $4, 1, '[]')`,
+                            [newOrderId, randomItem.id, randomItem.name, randomItem.price]
+                        );
                     }
                     logs.push({ message: 'Seeding complete.', type: 'success' });
                     io.emit('order:update', {}); // Trigger refresh

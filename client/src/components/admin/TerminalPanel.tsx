@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { socket } from '@/lib/socket';
 import { API_URL } from '@/lib/config';
+import { OrderStore } from '@/store/orderStore';
 
 interface LogMessage {
     message: string;
@@ -83,6 +84,19 @@ export function TerminalPanel() {
         if (command === 'clear') {
             setLogs([]);
             setIsProcessing(false);
+            return;
+        }
+
+        // Client-side Local Storage Flush
+        if (command === 'flush-local') {
+            addLog('Clearing local storage and reloading...', 'warning');
+            localStorage.removeItem('order-storage'); // Zustand persist key
+            // Also explicitly clear store state
+            useOrderStore.setState({ orders: [], currentOrder: [], offlineQueue: [], pendingUpdates: {} });
+
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
             return;
         }
 

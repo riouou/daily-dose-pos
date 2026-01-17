@@ -253,7 +253,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* System Status */}
-                        <SystemInfoCard lastClosed={lastClosed} />
+                        <SystemInfoCard lastClosed={lastClosed} status={sessionStatus} />
                     </div>
 
                     {/* History Table */}

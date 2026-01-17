@@ -9,6 +9,19 @@ export const attachItemsToOrders = async (orders) => {
         [orderIds]
     );
 
+    // Fetch MenuItem details (Type, Emoji) to enrich the snapshot
+    const menuItemIds = [...new Set(items.map(i => i.menu_item_id))];
+    let menuDetails = {};
+    if (menuItemIds.length > 0) {
+        const { rows: details } = await query(
+            `SELECT id, type, emoji FROM menu_items WHERE id = ANY($1::text[])`,
+            [menuItemIds]
+        );
+        details.forEach(d => {
+            menuDetails[d.id] = d;
+        });
+    }
+
     const itemsMap = {};
     items.forEach(item => {
         if (!itemsMap[item.order_id]) itemsMap[item.order_id] = [];
@@ -19,11 +32,15 @@ export const attachItemsToOrders = async (orders) => {
             finalFlavors = [item.selected_flavor];
         }
 
+        const detail = menuDetails[item.menu_item_id] || {};
+
         itemsMap[item.order_id].push({
             menuItem: {
                 id: item.menu_item_id,
                 name: item.menu_item_name_snapshot,
-                price: parseFloat(item.menu_item_price_snapshot)
+                price: parseFloat(item.menu_item_price_snapshot),
+                type: detail.type || 'food', // Default to food if not found
+                emoji: detail.emoji || '🍽️'
             },
             quantity: item.quantity,
             selectedFlavors: finalFlavors,
