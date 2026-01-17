@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { Plus, Trash2, Edit, ArrowUp, ArrowDown, Minus, Copy } from "lucide-react";
 import { useMenuStore } from '@/store/menuStore';
 import { MenuItem, FlavorSection } from '@/types/pos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -165,6 +165,28 @@ export function MenuManagement() {
         setIsItemDialogOpen(true);
     };
 
+    const handleDuplicateItem = (item: MenuItem) => {
+        // Create a copy but reset ID and append (Copy) to name
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { id, ...itemWithoutId } = item;
+
+        setCurrentItem({
+            ...itemWithoutId,
+            name: `${item.name} (Copy)`
+        });
+        setPriceInput(item.price.toString());
+
+        // We are NOT editing an existing item, we are creating a new one based on an old one
+        setIsEditing(false);
+        setIsMultiFlavor((item.maxFlavors || 1) > 1);
+
+        // Detect if using sections
+        const hasSections = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
+        setIsCategorizedFlavors(hasSections);
+
+        setIsItemDialogOpen(true);
+    };
+
     const resetItemForm = () => {
         // Safe default: use first category or 'Basic' fallback
         const defaultCategory = categories.length > 0 ? categories[0] : 'Basic';
@@ -271,6 +293,9 @@ export function MenuManagement() {
                                         <TableCell className="text-right">₱{item.price.toFixed(2)}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => handleDuplicateItem(item)} aria-label={`Duplicate ${item.name}`}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
                                                 <Button variant="ghost" size="icon" onClick={() => openEditDialog(item)} aria-label={`Edit ${item.name}`}>
                                                     <Edit className="h-4 w-4" />
                                                 </Button>
