@@ -183,8 +183,9 @@ export const createOrderRouter = (io) => {
             // Allow `amountTendered` to overwrite if needed (unlikely) or just use `calcTotal`.
             // Wait, if `amountTendered` is provided, we can verify it covers total.
 
-            // Generate Order ID (Use POS- prefix to distinguish from client-side ORD- optimistic IDs)
-            const newOrderId = `POS-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            // Generate Order ID (Clean format: DD-XXXXXX)
+            const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const newOrderId = `DD-${randomSuffix}`;
 
             // Insert Order
             console.log('Inserting Order:', { newOrderId, calcTotal, orderType: req.body.orderType });

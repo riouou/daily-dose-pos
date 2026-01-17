@@ -277,8 +277,8 @@ export const createAdminRouter = (io) => {
 
                     for (let i = 0; i < count; i++) {
                         const randomItem = items[Math.floor(Math.random() * items.length)];
-                        // Generate POS ID
-                        const newOrderId = `POS-SEED-${Date.now()}-${i}`;
+                        const randomSuffix = Math.random().toString(36).substring(2, 8).toUpperCase();
+                        const newOrderId = `DD-SEED-${randomSuffix}`;
 
                         await query(
                             `INSERT INTO orders (id, customer_name, total_amount, status, is_test, payment_method, payment_status, created_at)

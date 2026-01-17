@@ -222,7 +222,7 @@ export const useOrderStore = create<OrderState>()(
         set({ currentOrder: [] });
 
         const newOrderPayload = {
-          id: `ORD-${Date.now().toString(36).toUpperCase()}`,
+          id: `DD-${Date.now().toString(36).toUpperCase().slice(-6)}`,
           items: previousOrder,
           total: 0,
           status: 'new',
