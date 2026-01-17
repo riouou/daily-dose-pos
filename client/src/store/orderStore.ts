@@ -153,7 +153,7 @@ export const useOrderStore = create<OrderState>()(
             );
 
             if (isDuplicate) {
-              console.log('Skipping duplicate offline order:', orderPayload.id);
+              // console.log('Skipping duplicate offline order:', orderPayload.id);
               // Don't add to remainingQueue, effectively removing it
               continue;
             }
@@ -336,10 +336,13 @@ export const useOrderStore = create<OrderState>()(
             throw new Error(response.statusText);
           }
 
-          set((state) => {
-            const { [orderId]: _, ...rest } = state.pendingUpdates;
-            return { pendingUpdates: rest };
-          });
+          // Keep the pending flag for a moment to prevent "jitter" from stale polling/sockets
+          setTimeout(() => {
+            set((state) => {
+              const { [orderId]: _, ...rest } = state.pendingUpdates;
+              return { pendingUpdates: rest };
+            });
+          }, 2000);
 
         } catch (error) {
           console.error('Failed to update order status:', error);
@@ -456,9 +459,11 @@ export const useOrderStore = create<OrderState>()(
                 className: "bg-emerald-50 border-emerald-200 text-emerald-800"
               });
 
-              // Play a sound for ready orders
-              const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-              audio.play().catch(e => console.log('Audio play failed:', e));
+              // Play a sound for ready orders, BUT ONLY if we are NOT on the kitchen page
+              if (!window.location.pathname.includes('/kitchen')) {
+                const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+                audio.play().catch(e => console.log('Audio play failed:', e));
+              }
             } else if (order.status === 'completed') {
               // Optional: toast.info(`Order #${order.id} completed`);
             }

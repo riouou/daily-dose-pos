@@ -97,6 +97,12 @@ const initDb = async () => {
             // Seed default theme if not exists
             await query(`INSERT INTO settings (key, value) VALUES ('theme', 'dark') ON CONFLICT DO NOTHING`);
 
+            // Add Indexes for Performance
+            await query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`);
+            await query(`CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at)`);
+            await query(`CREATE INDEX IF NOT EXISTS idx_orders_closed_at ON orders(closed_at)`);
+            await query(`CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status)`);
+
         } catch (e) { /* ignore if exists */ }
 
         console.log('Sessions table ensured');

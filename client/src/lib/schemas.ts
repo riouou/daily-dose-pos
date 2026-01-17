@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+import { PAYMENT_METHOD_OPTIONS } from './constants';
+
 export const orderItemSchema = z.object({
     menuItem: z.object({
         id: z.string().or(z.number()),
@@ -17,7 +19,7 @@ export const orderSchema = z.object({
     tableNumber: z.number().int().positive().optional().nullable(),
     beeperNumber: z.number().int().positive().optional().nullable(),
     isTest: z.boolean().optional(),
-    paymentMethod: z.enum(['Cash', 'Card', 'Pay Later', 'GCash', 'Bank Transfer']).optional(),
+    paymentMethod: z.enum(PAYMENT_METHOD_OPTIONS).optional(),
     amountTendered: z.number().optional(),
     changeAmount: z.number().optional()
 });
