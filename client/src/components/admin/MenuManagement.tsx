@@ -185,7 +185,12 @@ export function MenuManagement() {
 
     // Logic to manage localAddons (very similar to sections/options above, but for global scope)
     const handleAddGlobalSection = () => {
-        setLocalAddons([...localAddons, { name: 'New Section', options: [], max: 1, allowedTypes: ['food', 'drink'] }]);
+        setLocalAddons([...localAddons, {
+            name: 'New Section',
+            options: [],
+            max: 1,
+            allowedCategories: categories.filter(c => c !== 'All')
+        }]);
     };
 
     const handleUpdateGlobalSectionName = (index: number, name: string) => {
@@ -200,23 +205,27 @@ export function MenuManagement() {
         setLocalAddons(updated);
     };
 
-    const handleGlobalSectionTypeToggle = (index: number, type: 'food' | 'drink') => {
+    const handleGlobalSectionCategoryToggle = (index: number, category: string) => {
         const updated = [...localAddons];
         const section = updated[index];
-        // If undefined, it means ALL. Initialize it.
-        // Wait, if undefined it means "All" (legacy/default). 
-        // If we toggle one OFF, then we must define the array with the OTHER one.
-        // If we toggle one ON, we add to array.
 
-        let currentTypes = section.allowedTypes || ['food', 'drink'];
+        let currentCats = section.allowedCategories;
 
-        if (currentTypes.includes(type)) {
-            currentTypes = currentTypes.filter(t => t !== type);
-        } else {
-            currentTypes = [...currentTypes, type];
+        // If undefined, it means ALL. 
+        if (!currentCats) {
+            // If currently undefined (Apply All), and we execute a toggle,
+            // it means we want to unselect one, so we start with All and remove one.
+            // OR we treat undefined as "All" visually.
+            currentCats = categories.filter(c => c !== 'All');
         }
 
-        updated[index].allowedTypes = currentTypes;
+        if (currentCats.includes(category)) {
+            currentCats = currentCats.filter(c => c !== category);
+        } else {
+            currentCats = [...currentCats, category];
+        }
+
+        updated[index].allowedCategories = currentCats;
         setLocalAddons(updated);
     };
 
@@ -733,38 +742,70 @@ export function MenuManagement() {
                                         onChange={(e) => handleUpdateGlobalSectionName(sIdx, e.target.value)}
                                         placeholder="Section Name (e.g. Add-ons)"
                                     />
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <span className="text-sm text-muted-foreground whitespace-nowrap">Apply to:</span>
-                                        <div className="flex items-center gap-1 border rounded px-1">
-                                            <Button
-                                                variant={(!section.allowedTypes || section.allowedTypes.includes('food')) ? "secondary" : "ghost"}
-                                                size="sm"
-                                                className={cn("h-6 text-xs px-2", (!section.allowedTypes || section.allowedTypes.includes('food')) && "bg-primary/20 text-primary hover:bg-primary/30")}
-                                                onClick={() => handleGlobalSectionTypeToggle(sIdx, 'food')}
-                                            >
-                                                Food
-                                            </Button>
-                                            <Button
-                                                variant={(!section.allowedTypes || section.allowedTypes.includes('drink')) ? "secondary" : "ghost"}
-                                                size="sm"
-                                                className={cn("h-6 text-xs px-2", (!section.allowedTypes || section.allowedTypes.includes('drink')) && "bg-primary/20 text-primary hover:bg-primary/30")}
-                                                onClick={() => handleGlobalSectionTypeToggle(sIdx, 'drink')}
-                                            >
-                                                Drink
+                                    <div className="flex flex-col gap-1.5 shrink-0 max-w-[400px]">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-xs text-muted-foreground font-medium">Apply to Categories:</span>
+                                            <div className="flex gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-5 text-[10px] px-1 text-muted-foreground hover:text-primary"
+                                                    onClick={() => {
+                                                        const updated = [...localAddons];
+                                                        updated[sIdx].allowedCategories = categories.filter(c => c !== 'All');
+                                                        setLocalAddons(updated);
+                                                    }}
+                                                >
+                                                    All
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-5 text-[10px] px-1 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => {
+                                                        const updated = [...localAddons];
+                                                        updated[sIdx].allowedCategories = []; // Empry array = None
+                                                        setLocalAddons(updated);
+                                                    }}
+                                                >
+                                                    None
+                                                </Button>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {categories.filter(c => c !== 'All').map(cat => (
+                                                <Button
+                                                    key={cat}
+                                                    variant={(!section.allowedCategories || section.allowedCategories.includes(cat)) ? "secondary" : "outline"}
+                                                    size="sm"
+                                                    className={cn(
+                                                        "h-6 text-[10px] px-2 transition-all",
+                                                        (!section.allowedCategories || section.allowedCategories.includes(cat))
+                                                            ? "bg-primary/20 text-primary hover:bg-primary/30 border-primary/20"
+                                                            : "text-muted-foreground hover:text-foreground"
+                                                    )}
+                                                    onClick={() => handleGlobalSectionCategoryToggle(sIdx, cat)}
+                                                >
+                                                    {cat}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col gap-1.5 ml-4">
+                                        <span className="text-xs text-muted-foreground font-medium">Max Select:</span>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                                type="number"
+                                                className="w-16 h-8"
+                                                value={section.max || 1}
+                                                onChange={(e) => handleGlobalSectionMaxChange(sIdx, parseInt(e.target.value) || 1)}
+                                                min={1}
+                                            />
+                                            <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleRemoveGlobalSection(sIdx)}>
+                                                <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
-
-                                        <span className="text-sm text-muted-foreground whitespace-nowrap ml-2">Max Select:</span>
-                                        <Input
-                                            type="number"
-                                            className="w-16 h-8"
-                                            value={section.max || 1}
-                                            onChange={(e) => handleGlobalSectionMaxChange(sIdx, parseInt(e.target.value) || 1)}
-                                            min={1}
-                                        />
-                                        <Button size="icon" variant="ghost" className="text-destructive h-8 w-8" onClick={() => handleRemoveGlobalSection(sIdx)}>
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
                                     </div>
                                 </div>
 

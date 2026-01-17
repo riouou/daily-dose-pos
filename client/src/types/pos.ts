@@ -7,7 +7,7 @@ export interface FlavorSection {
   name: string;
   options: (string | FlavorOption)[];
   max?: number;
-  allowedTypes?: ('food' | 'drink')[];
+  allowedCategories?: string[];
 }
 
 export interface MenuItem {

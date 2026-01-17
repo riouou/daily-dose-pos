@@ -149,8 +149,14 @@ export function OrderPanel() {
                         const { globalAddons } = useMenuStore.getState();
                         // Filter relevant sections first
                         const relevantAddons = globalAddons.filter(addon => {
-                          if (!addon.allowedTypes) return orderItem.menuItem.type === 'drink';
-                          return addon.allowedTypes.includes(orderItem.menuItem.type as any);
+                          if (addon.allowedCategories && addon.allowedCategories.length > 0) {
+                            return addon.allowedCategories.includes(orderItem.menuItem.category);
+                          }
+                          const addonAny = addon as any;
+                          if (addonAny.allowedTypes) {
+                            return addonAny.allowedTypes.includes(orderItem.menuItem.type);
+                          }
+                          return orderItem.menuItem.type === 'drink';
                         });
 
                         for (const s of relevantAddons) {

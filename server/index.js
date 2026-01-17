@@ -427,7 +427,7 @@ app.post('/api/orders', validate(orderSchema), async (req, res) => {
         }
 
         for (const item of items) {
-            const { rows: menuItemRows } = await client.query('SELECT price, flavors, type FROM menu_items WHERE id = $1', [item.menuItem.id]);
+            const { rows: menuItemRows } = await client.query('SELECT price, flavors, type, category FROM menu_items WHERE id = $1', [item.menuItem.id]);
             if (menuItemRows.length === 0) {
                 throw new Error(`Menu item with ID ${item.menuItem.id} not found.`);
             }
@@ -459,9 +459,15 @@ app.post('/api/orders', validate(orderSchema), async (req, res) => {
                     if (priceFound === 0) {
                         for (const section of globalAddons) {
                             // Check compatibility
-                            const isCompatible = (!section.allowedTypes)
-                                ? dbItem.type === 'drink'
-                                : section.allowedTypes.includes(dbItem.type);
+                            let isCompatible = false;
+
+                            if (section.allowedCategories && section.allowedCategories.length > 0) {
+                                isCompatible = section.allowedCategories.includes(dbItem.category);
+                            } else if (section.allowedTypes) {
+                                isCompatible = section.allowedTypes.includes(dbItem.type);
+                            } else {
+                                isCompatible = dbItem.type === 'drink';
+                            }
 
                             if (!isCompatible) continue;
 

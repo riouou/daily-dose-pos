@@ -34,12 +34,22 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   // Check if the item ITSELF has categorized flavors
   const hasCategorizedFlavors = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
 
-  // Filter global addons applicable to this item type
+  // Filter global addons applicable to this item category (or type for legacy)
   const applicableGlobalAddons = globalAddons.filter(addon => {
-    // Legacy support: if allowedTypes is undefined, assume it's for drinks only (previous behavior)
-    // OR if user explicitly set it.
-    if (!addon.allowedTypes) return item.type === 'drink';
-    return addon.allowedTypes.includes(item.type as 'food' | 'drink');
+    // New Category Logic
+    if (addon.allowedCategories && addon.allowedCategories.length > 0) {
+      return addon.allowedCategories.includes(item.category);
+    }
+
+    // Fallback/Legacy: If no categories defined, check legacy allowedTypes or default to drink
+    // (We cast to any to access potentially legacy property if needed, or just default to drink)
+    const addonAny = addon as any;
+    if (addonAny.allowedTypes) {
+      return addonAny.allowedTypes.includes(item.type);
+    }
+
+    // Default legacy behavior
+    return item.type === 'drink';
   });
 
   // We use the categorized UI if it has categories OR if there are any global addons applicable
