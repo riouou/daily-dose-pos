@@ -153,7 +153,7 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
 
         <div className="flex flex-col items-end">
           <span
-            className="text-xs font-medium text-muted-foreground/80 bg-secondary/50 px-2 py-1 rounded-full border border-border/50 cursor-help"
+            className="text-xs font-medium text-muted-foreground/80 bg-secondary/50 px-2 py-1 rounded-md border border-border/50 cursor-help whitespace-nowrap"
             title={`Order Time: ${new Date(order.createdAt).toLocaleString()} \nRaw: ${order.createdAt} \nClient Time: ${new Date().toLocaleString()}`}
           >
             {timeAgo}
