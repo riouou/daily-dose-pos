@@ -14,17 +14,58 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from '@/components/ui/button';
 import { ShoppingCart } from 'lucide-react';
+import { socket } from '@/lib/socket';
+import { toast } from 'sonner';
 
 export default function CashierPage() {
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const { addToOrder, currentOrder, fetchOrders } = useOrderStore();
   const { items: menuItems, fetchMenu } = useMenuStore();
 
-  // Initial Data Fetch
   useEffect(() => {
     fetchOrders();
     fetchMenu();
   }, [fetchOrders, fetchMenu]);
+
+  // Listen for Drink Orders (Single Global Listener)
+  useEffect(() => {
+    const handleNewOrder = (order: any) => {
+      // Only notify if there are drinks
+      const hasDrinks = order.items.some((i: any) =>
+        i.menuItem.type === 'drink'
+      );
+
+      if (hasDrinks) {
+        // Notification Text Logic
+        const beeperText = order.beeperNumber ? `Beeper #${order.beeperNumber}` : 'No Beeper';
+        const tableText = order.tableNumber ? `Table #${order.tableNumber}` : '';
+
+        // Priority: Beeper (for Drinks)
+        const locationText = order.beeperNumber ? beeperText : (tableText || 'Counter');
+
+        // Play Sound
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(() => { });
+
+        toast(`New Drink Ticket: ${locationText}`, {
+          description: `Order #${order.id.slice(-4)} contains drinks.`,
+          duration: 10000,
+          action: {
+            label: 'Dismiss',
+            onClick: () => { }
+          }
+        });
+
+        // Add to persistent queue
+        useOrderStore.getState().addDrinkTicket(order);
+      }
+    };
+
+    socket.on('order:new', handleNewOrder);
+    return () => {
+      socket.off('order:new', handleNewOrder);
+    };
+  }, []);
 
   const filteredItems =
     activeCategory === 'All'
