@@ -206,8 +206,9 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
                 : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/20"
             )}
             onClick={handleNextStatus}
+            disabled={order.id.startsWith('ORD-')}
           >
-            {order.status === 'new' ? 'Start Preparing' : 'Mark Ready'}
+            {order.id.startsWith('ORD-') ? 'Syncing...' : (order.status === 'new' ? 'Start Preparing' : 'Mark Ready')}
           </Button>
         )}
 
