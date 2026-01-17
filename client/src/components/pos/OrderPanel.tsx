@@ -6,8 +6,7 @@ import { useOrderStore } from '@/store/orderStore';
 import { useMenuStore } from '@/store/menuStore';
 import { FlavorSection } from '@/types/pos';
 import { toast } from 'sonner';
-import { useState, useEffect } from 'react';
-import { socket } from '@/lib/socket';
+import { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,7 +20,6 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PaymentDialog } from './PaymentDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DrinkTicketList } from './DrinkTicketList';
-
 
 export function OrderPanel() {
   const { currentOrder, updateQuantity, removeFromOrder, clearOrder, submitOrder, getOrderTotal } = useOrderStore();
@@ -46,7 +44,6 @@ export function OrderPanel() {
   };
 
   const total = getOrderTotal();
-
 
   const handleProceed = () => {
     if (currentOrder.length === 0) {
@@ -77,13 +74,8 @@ export function OrderPanel() {
     }
   };
 
-  // Socket listener moved to CashierPage to prevent double notifications
-
-
   return (
     <div className="flex flex-col h-full bg-background/60 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden ring-1 ring-black/5">
-
-
       <Tabs defaultValue="new" className="flex flex-col h-full">
         <div className="p-3 border-b border-border/10 bg-white/5">
           <TabsList className="grid w-full grid-cols-2">
@@ -93,7 +85,6 @@ export function OrderPanel() {
             </TabsTrigger>
             <TabsTrigger value="drinks" className="gap-2">
               Drinks
-              {/* Badge could go here */}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -118,20 +109,14 @@ export function OrderPanel() {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{orderItem.menuItem.name}</p>
                     {orderItem.selectedFlavors && orderItem.selectedFlavors.length > 0 && (
-
-                          return (
-                            <span key={idx} className="after:content-[','] last:after:content-['']">
-                              {flavor} {price > 0 && `(+₱${price})`}
-                            </span>
-                          );
-                        })}
-                      </div>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {orderItem.selectedFlavors.join(', ')}
+                      </p>
                     )}
-                    <p className="text-sm text-muted-foreground">
-                      ₱{orderItem.menuItem.price.toFixed(2)} each
-                    </p>
+                    <div className="text-xs font-semibold mt-0.5">₱{(orderItem.menuItem.price * orderItem.quantity).toFixed(2)}</div>
                   </div>
-                  <div className="flex items-center gap-1">
+
+                  <div className="flex items-center gap-1 bg-background/50 rounded-lg p-0.5 border border-border/50">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -171,57 +156,75 @@ export function OrderPanel() {
             )}
           </div>
 
-          <span className="text-sm font-medium min-w-[50px]">Table:</span>
-          <Input
-            type="number"
-            placeholder="#"
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            className="text-right font-medium"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium min-w-[50px]">Beeper:</span>
-          <Input
-            type="number"
-            placeholder="#"
-            value={beeperNumber}
-            onChange={(e) => setBeeperNumber(e.target.value)}
-            className="text-right font-medium"
-          />
-        </div>
-    </div >
+          <div className="p-4 bg-white/5 border-t border-border/10 space-y-4">
+            <div className="flex bg-secondary/50 p-1 rounded-lg">
+              <ToggleGroup type="single" value={orderType} onValueChange={(val) => val && setOrderType(val as any)} className="w-full">
+                <ToggleGroupItem value="dine-in" className="flex-1 data-[state=on]:bg-blue-600 data-[state=on]:text-white transition-all">
+                  Dine In
+                </ToggleGroupItem>
+                <ToggleGroupItem value="take-out" className="flex-1 data-[state=on]:bg-orange-500 data-[state=on]:text-white transition-all">
+                  Take Out
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
 
+            <div className="space-y-2 pb-2 border-b border-border/50">
+              <div className="flex justify-between items-center text-base">
+                <span className="text-muted-foreground">Total</span>
+                <span className="font-bold text-xl text-black dark:text-primary">₱{total.toFixed(2)}</span>
+              </div>
 
-            </div >
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium min-w-[50px]">Table:</span>
+                  <Input
+                    type="number"
+                    placeholder="#"
+                    value={tableNumber}
+                    onChange={(e) => setTableNumber(e.target.value)}
+                    className="text-right font-medium"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium min-w-[50px]">Beeper:</span>
+                  <Input
+                    type="number"
+                    placeholder="#"
+                    value={beeperNumber}
+                    onChange={(e) => setBeeperNumber(e.target.value)}
+                    className="text-right font-medium"
+                  />
+                </div>
+              </div>
+            </div>
 
-    <div className="grid grid-cols-2 gap-2">
-      <Button
-        variant="outline"
-        size="lg"
-        onClick={() => { clearOrder(); setBeeperNumber(''); setTableNumber(''); }}
-        disabled={currentOrder.length === 0}
-      >
-        Clear
-      </Button>
-      <div className="flex gap-2">
-        <Button
-          size="lg"
-          className="flex-1"
-          onClick={handleProceed}
-          disabled={currentOrder.length === 0}
-        >
-          Proceed
-        </Button>
-      </div>
-    </div>
-          </div >
-        </TabsContent >
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => { clearOrder(); setBeeperNumber(''); setTableNumber(''); }}
+                disabled={currentOrder.length === 0}
+              >
+                Clear
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="lg"
+                  className="flex-1"
+                  onClick={handleProceed}
+                  disabled={currentOrder.length === 0}
+                >
+                  Proceed
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
 
-    <TabsContent value="drinks" className="flex-1 min-h-0 data-[state=inactive]:hidden mt-0">
-      <DrinkTicketList />
-    </TabsContent>
-      </Tabs >
+        <TabsContent value="drinks" className="flex-1 min-h-0 data-[state=inactive]:hidden mt-0">
+          <DrinkTicketList />
+        </TabsContent>
+      </Tabs>
 
       <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
         <AlertDialogContent>
@@ -255,6 +258,6 @@ export function OrderPanel() {
         onConfirm={handlePaymentConfirm}
         isSubmitting={isSubmitting}
       />
-    </div >
+    </div>
   );
 }
