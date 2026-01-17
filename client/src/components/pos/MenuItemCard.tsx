@@ -31,7 +31,34 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
 
   const { globalAddons } = useMenuStore();
 
-  const isCategorized = (Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string') || item.type === 'drink';
+  // Check if the item ITSELF has categorized flavors
+  const hasCategorizedFlavors = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
+
+  // We use the categorized UI if it has categories OR if it's a drink (to show sections + global addons)
+  const isCategorized = hasCategorizedFlavors || item.type === 'drink';
+
+  // Build sections list
+  let sections: FlavorSection[] = [];
+
+  if (hasCategorizedFlavors) {
+    // Already has sections, use them
+    sections = [...(item.flavors as FlavorSection[])];
+  } else if (item.flavors && item.flavors.length > 0) {
+    // Has simple flavors (strings), but we need to show them as a section because we are in categorized mode (likely a drink)
+    // or if we just want to unify the UI for drinks
+    if (isCategorized) {
+      sections = [{
+        name: 'Options',
+        max: item.maxFlavors || 1,
+        options: item.flavors as string[]
+      }];
+    }
+  }
+
+  // Append global addons for drinks
+  if (item.type === 'drink') {
+    sections = [...sections, ...globalAddons];
+  }
 
   const handleClick = () => {
     if ((item.flavors && item.flavors.length > 0) || (item.type === 'drink' && globalAddons.length > 0)) {
@@ -89,18 +116,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   };
 
   const isSelected = (flavor: string) => selectedFlavors.includes(flavor);
-  const isSectionSelected = (sectionIdx: number, flavor: string) => sectionSelections[sectionIdx]?.includes(flavor);
-
-  // Merge item flavors with global addons if type is drink
-  let sections: FlavorSection[] = [];
-  if (isCategorized) {
-    const itemFlavors = (item.flavors as FlavorSection[]) || [];
-    sections = [...itemFlavors];
-
-    if (item.type === 'drink') {
-      sections = [...sections, ...globalAddons];
-    }
-  }
+  const isSectionSelected = (sectionIdx: number, flavor: string) => sectionSelections[sectionIdx]?.includes(flavor);;
 
   const simpleFlavors = !isCategorized ? (item.flavors as string[]) : [];
 

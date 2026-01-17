@@ -698,7 +698,7 @@ export function MenuManagement() {
                     <DialogHeader>
                         <DialogTitle>Global Add-ons</DialogTitle>
                         <DialogDescription>
-                            Configure add-ons that will appear for ALL drinks (e.g., Sugar Level, Sinkers).
+                            Configure add-ons that will appear for ALL drinks (e.g., Sugar Level, Espresso Shot).
                         </DialogDescription>
                     </DialogHeader>
 
