@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format, differenceInHours, differenceInMinutes, addHours } from "date-fns";
 import { Banknote, Search, Clock, AlertTriangle, Receipt } from "lucide-react";
-import { DetailedHistory } from "@/types/pos";
+import { DetailedHistory, FlavorSection, OrderItem } from "@/types/pos";
+import { useMenuStore } from "@/store/menuStore";
 
 interface HistoryDialogProps {
     open: boolean;
@@ -17,6 +18,39 @@ interface HistoryDialogProps {
 
 export function HistoryDialog({ open, onOpenChange, data }: HistoryDialogProps) {
     const [searchQuery, setSearchQuery] = useState('');
+    const { globalAddons } = useMenuStore();
+
+    const calculateItemTotal = (item: OrderItem) => {
+        let itemParamsPrice = 0;
+        if (item.selectedFlavors && item.selectedFlavors.length > 0) {
+            item.selectedFlavors.forEach(flavorName => {
+                let priceFound = 0;
+                // 1. Check Item specific flavors
+                if (Array.isArray(item.menuItem.flavors) && item.menuItem.flavors.length > 0 && typeof item.menuItem.flavors[0] !== 'string') {
+                    const sections = item.menuItem.flavors as FlavorSection[];
+                    for (const section of sections) {
+                        const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                        if (option && typeof option !== 'string' && option.price) {
+                            priceFound = option.price;
+                            break;
+                        }
+                    }
+                }
+                // 2. Check Global Addons
+                if (priceFound === 0 && item.menuItem.type === 'drink') {
+                    for (const section of globalAddons) {
+                        const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                        if (option && typeof option !== 'string' && option.price) {
+                            priceFound = option.price;
+                            break;
+                        }
+                    }
+                }
+                itemParamsPrice += priceFound;
+            });
+        }
+        return (item.menuItem.price + itemParamsPrice) * item.quantity;
+    };
 
     const filteredOrders = useMemo(() => {
         if (!data) return [];
@@ -110,19 +144,36 @@ export function HistoryDialog({ open, onOpenChange, data }: HistoryDialogProps) 
                                                     {order.tableNumber && <Badge variant="outline" className="text-[10px] px-1 py-0 h-5">Table {order.tableNumber}</Badge>}
                                                 </div>
                                             </div>
-                                            <p className="font-bold text-lg text-primary">₱{order.total.toLocaleString()}</p>
+                                            <div className="text-right">
+                                                <p className="font-bold text-lg text-primary">₱{order.total.toLocaleString()}</p>
+                                                {order.amountTendered ? (
+                                                    <div className="text-[10px] text-muted-foreground mt-0.5 space-y-0.5">
+                                                        <div className="flex justify-end gap-2">
+                                                            <span>Paid:</span>
+                                                            <span className="font-medium">₱{order.amountTendered.toLocaleString()}</span>
+                                                        </div>
+                                                        <div className="flex justify-end gap-2">
+                                                            <span>Change:</span>
+                                                            <span className="font-medium">₱{order.changeAmount?.toLocaleString() || '0'}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : null}
+                                            </div>
                                         </div>
 
                                         <div className="space-y-1 pt-2 border-t border-dashed">
                                             {order.items.map((item, i) => (
                                                 <div key={i} className="text-sm flex justify-between items-start group">
-                                                    <div className="text-muted-foreground leading-snug">
+                                                    <div className="text-muted-foreground leading-snug flex-1">
                                                         <span className="text-foreground font-medium">{item.quantity}x</span> {item.menuItem.name}
                                                         {item.selectedFlavors && item.selectedFlavors.length > 0 && (
                                                             <div className="text-[10px] text-muted-foreground/70 pl-5">
                                                                 {item.selectedFlavors.join(', ')}
                                                             </div>
                                                         )}
+                                                    </div>
+                                                    <div className="font-medium text-foreground ml-2">
+                                                        ₱{calculateItemTotal(item).toLocaleString()}
                                                     </div>
                                                 </div>
                                             ))}
