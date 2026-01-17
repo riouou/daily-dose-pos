@@ -51,7 +51,6 @@ export const useOrderStore = create<OrderState>()(
     (set, get) => ({
       currentOrder: [],
       orders: [],
-      orders: [],
       offlineQueue: [],
       drinkQueue: [],
       pendingUpdates: {},
@@ -495,23 +494,13 @@ export const useOrderStore = create<OrderState>()(
         });
       },
 
-      addDrinkTicket: (orderId: string, item: OrderItem) => {
-        set((state) => ({
-          drinkQueue: [...state.drinkQueue, { orderId, item, timestamp: new Date() }]
-        }));
-      },
-
-      completeDrinkTicket: (orderId: string, itemId: string) => {
-        set((state) => ({
-          drinkQueue: state.drinkQueue.filter(ticket => !(ticket.orderId === orderId && ticket.item.id === itemId))
-        }));
-      },
+    },
     }),
-    {
-      // Wait, I can't easily insert into the big object with replace_file_content if I don't see the whole thing.
-      // I will use a larger context or multiple chunks if needed.
-      // Let's look at where `syncOfflineOrders` ends (line 196) and insert there.
-    }
+{
+  // Wait, I can't easily insert into the big object with replace_file_content if I don't see the whole thing.
+  // I will use a larger context or multiple chunks if needed.
+  // Let's look at where `syncOfflineOrders` ends (line 196) and insert there.
+}
   )
 );
 
