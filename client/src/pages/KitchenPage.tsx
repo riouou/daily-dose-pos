@@ -36,8 +36,17 @@ export default function KitchenPage() {
     };
   }, [fetchOrders]);
 
-  const activeOrders = orders.filter((o) => o.status === 'new' || o.status === 'preparing');
-  const readyOrders = orders.filter((o) => o.status === 'ready');
+  // Filter: Only show orders that contain FOOD.
+  // Kitchen doesn't need to see orders that are purely Drinks.
+  const activeOrders = orders.filter((o) =>
+    (o.status === 'new' || o.status === 'preparing') &&
+    o.items.some(i => i.menuItem.type === 'food' || !i.menuItem.type)
+  );
+
+  const readyOrders = orders.filter((o) =>
+    o.status === 'ready' &&
+    o.items.some(i => i.menuItem.type === 'food' || !i.menuItem.type)
+  );
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-zinc-950/50">

@@ -6,7 +6,8 @@ import { useOrderStore } from '@/store/orderStore';
 import { useMenuStore } from '@/store/menuStore';
 import { FlavorSection } from '@/types/pos';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { socket } from '@/lib/socket';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -71,8 +72,46 @@ export function OrderPanel() {
     }
   };
 
+  // Listen for Drink Orders (Cashier Notification)
+  useEffect(() => {
+    const handleNewOrder = (order: any) => {
+      // Only notify if there are drinks
+      const hasDrinks = order.items.some((i: any) =>
+        i.menuItem.type === 'drink'
+      );
+
+      if (hasDrinks) {
+        // Notification Text Logic
+        const beeperText = order.beeperNumber ? `Beeper #${order.beeperNumber}` : 'No Beeper';
+        const tableText = order.tableNumber ? `Table #${order.tableNumber}` : '';
+
+        // Priority: Beeper (for Drinks)
+        const locationText = order.beeperNumber ? beeperText : (tableText || 'Counter');
+
+        // Play Sound
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(() => { });
+
+        toast(`New Drink Ticket: ${locationText}`, {
+          description: `Order #${order.id.slice(-4)} contains drinks.`,
+          duration: 10000,
+          action: {
+            label: 'Dismiss',
+            onClick: () => { }
+          }
+        });
+      }
+    };
+
+    socket.on('order:new', handleNewOrder);
+    return () => {
+      socket.off('order:new', handleNewOrder);
+    };
+  }, []);
+
   return (
     <div className="flex flex-col h-full bg-background/60 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden ring-1 ring-black/5">
+
 
       <div className="p-5 border-b border-border/10 bg-white/5">
         <div className="flex items-center gap-3">

@@ -1,0 +1,204 @@
+import express from 'express';
+import { query } from '../db.js';
+import { attachItemsToOrders } from '../utils/helpers.js';
+import { AppState } from '../utils/state.js';
+
+export const createAdminRouter = (io) => {
+    const router = express.Router();
+
+    // GET /api/admin/status
+    router.get('/status', async (req, res) => {
+        try {
+            const { rows: openSessions } = await query("SELECT * FROM sessions WHERE status = 'OPEN'");
+            res.json({
+                status: openSessions.length > 0 ? 'OPEN' : 'CLOSED',
+                session: openSessions[0] || null
+            });
+        } catch (err) {
+            console.error('Error fetching session status:', err);
+            res.status(500).json({ error: 'Status check failed' });
+        }
+    });
+
+    // POST /api/admin/open-day
+    router.post('/open-day', async (req, res) => {
+        try {
+            const { rows: openSessions } = await query("SELECT * FROM sessions WHERE status = 'OPEN'");
+            if (openSessions.length > 0) return res.status(400).json({ error: 'Session already open' });
+
+            const { rows: newSession } = await query(
+                `INSERT INTO sessions (status, opened_at, total_orders, total_sales) 
+                 VALUES ('OPEN', NOW(), 0, 0) RETURNING *`
+            );
+
+            // Reset maintenance
+            AppState.isMaintenance = false;
+
+            res.json(newSession[0]);
+            io.emit('session:update', { status: 'OPEN' });
+        } catch (err) {
+            console.error('Error opening day:', err);
+            res.status(500).json({ error: 'Failed to open day' });
+        }
+    });
+
+    // POST /api/admin/close-day
+    router.post('/close-day', async (req, res) => {
+        try {
+            const { rows: openSessions } = await query("SELECT * FROM sessions WHERE status = 'OPEN'");
+            if (openSessions.length === 0) return res.status(400).json({ error: 'No open session' });
+
+            const session = openSessions[0];
+            const { rows: closed } = await query(
+                `UPDATE sessions 
+                 SET status = 'CLOSED', closed_at = NOW() 
+                 WHERE id = $1 RETURNING *`,
+                [session.id]
+            );
+
+            // Set maintenance
+            AppState.isMaintenance = true;
+
+            // Also mark all open orders as Closed/Completed?
+            // Optional: for now just close the session tracking.
+
+            // Send summary
+            res.json({
+                success: true,
+                summary: {
+                    date: new Date(closed[0].closed_at).toLocaleDateString(),
+                    orders: closed[0].total_orders,
+                    sales: closed[0].total_sales
+                }
+            });
+            io.emit('session:update', { status: 'CLOSED' });
+
+        } catch (err) {
+            console.error('Error closing day:', err);
+            res.status(500).json({ error: 'Failed to close day' });
+        }
+    });
+
+    // GET /api/admin/history
+    router.get('/history', async (req, res) => {
+        const { page = 1, limit = 10 } = req.query;
+        const offset = (page - 1) * limit;
+
+        try {
+            const { rows: items } = await query(
+                `SELECT * FROM sessions 
+                 WHERE status = 'CLOSED' 
+                 ORDER BY closed_at DESC 
+                 LIMIT $1 OFFSET $2`,
+                [limit, offset]
+            );
+
+            const { rows: count } = await query(`SELECT COUNT(*) FROM sessions WHERE status = 'CLOSED'`);
+
+            res.json({
+                items: items.map(s => ({
+                    id: s.id,
+                    date: new Date(s.opened_at).toLocaleDateString(),
+                    openedAt: s.opened_at,
+                    closedAt: s.closed_at,
+                    totalOrders: s.total_orders,
+                    totalSales: parseFloat(s.total_sales)
+                })),
+                meta: {
+                    page: parseInt(page),
+                    totalPages: Math.ceil(parseInt(count[0].count) / limit)
+                }
+            });
+        } catch (err) {
+            console.error('Error fetching history:', err);
+            res.status(500).json({ error: 'Failed to fetch history' });
+        }
+    });
+
+    // GET /api/admin/history/:id
+    router.get('/history/:id', async (req, res) => {
+        const { id } = req.params;
+        try {
+            const { rows: sessions } = await query(`SELECT * FROM sessions WHERE id = $1`, [id]);
+            if (sessions.length === 0) return res.status(404).json({ error: 'Session not found' });
+
+            const session = sessions[0];
+
+            // Retention Policy Check: If closed > 24 hours ago, deny details
+            const closedDate = new Date(session.closed_at);
+            const now = new Date();
+            const hoursSinceClose = (now - closedDate) / (1000 * 60 * 60);
+
+            if (hoursSinceClose > 24) {
+                return res.status(410).json({ error: 'Detailed receipts expired' });
+            }
+
+            // Fetch orders for this session
+            // Logic: Orders created between opened_at and closed_at (or just associated if we had session_id column, but we use time range)
+            const { rows: orders } = await query(
+                `SELECT * FROM orders 
+                 WHERE created_at >= $1 AND created_at <= $2`,
+                [session.opened_at, session.closed_at]
+            );
+
+            const fullOrders = await attachItemsToOrders(orders);
+
+            res.json({
+                ...session,
+                date: new Date(session.opened_at).toLocaleDateString(),
+                openedAt: session.opened_at,
+                closedAt: session.closed_at,
+                totalOrders: session.total_orders,
+                totalSales: parseFloat(session.total_sales),
+                orders: fullOrders
+            });
+
+        } catch (err) {
+            console.error('Error fetching session details:', err);
+            res.status(500).json({ error: 'Failed to fetch details' });
+        }
+    });
+
+    // GET /api/admin/analytics
+    router.get('/analytics', async (req, res) => {
+        const { period = 'week' } = req.query;
+        // Basic analytics logic
+        let dateFilter = `created_at > NOW() - INTERVAL '7 days'`;
+        if (period === 'today') dateFilter = `created_at > CURRENT_DATE`;
+        if (period === 'month') dateFilter = `created_at > NOW() - INTERVAL '30 days'`;
+
+        try {
+            // Top Items
+            const { rows: topItems } = await query(`
+                SELECT menu_item_name_snapshot as name, SUM(quantity) as quantity, SUM(menu_item_price_snapshot * quantity) as sales
+                FROM order_items 
+                JOIN orders ON orders.id = order_items.order_id
+                WHERE orders.status != 'cancelled' AND ${dateFilter}
+                GROUP BY name
+                ORDER BY quantity DESC
+                LIMIT 5
+            `);
+
+            // Daily Totals (Graph)
+            const { rows: dailyTotals } = await query(`
+                SELECT DATE(created_at) as date, SUM(total_amount) as sales, COUNT(*) as orders
+                FROM orders
+                WHERE status != 'cancelled' AND ${dateFilter}
+                GROUP BY DATE(created_at)
+                ORDER BY date ASC
+            `);
+
+            res.json({
+                topItems,
+                dailyTotals,
+                hourlyStats: [] // Simplified for now
+            });
+
+        } catch (err) {
+            console.error('Error fetching analytics:', err);
+            res.status(500).json({ error: 'Failed to fetch analytics' });
+        }
+    });
+
+    return router;
+};

@@ -1,21 +1,30 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useOrderStore } from '@/store/orderStore';
 import { useMenuStore } from '@/store/menuStore';
 import { toast } from 'sonner';
-import { Store, History, BarChart3, UtensilsCrossed, Terminal, LayoutDashboard } from 'lucide-react';
+import { Store, BarChart3, Terminal, LayoutDashboard } from 'lucide-react';
 import { CurrentSessionCard } from '@/components/admin/CurrentSessionCard';
 import { SystemInfoCard } from '@/components/admin/SystemInfoCard';
 import { HistoryTable } from '@/components/admin/HistoryTable';
-import { AnalyticsTab } from '@/components/admin/AnalyticsTab';
-import { MenuManagement } from '@/components/admin/MenuManagement';
+// Static import for critical "Overview" components is fine
 import { HistoryDialog } from '@/components/admin/HistoryDialog';
 import { AnalyticsData, HistoryItem, DetailedHistory } from '@/types/pos';
 import { socket } from '@/lib/socket';
 import { API_URL } from '@/lib/config';
-import { TerminalPanel } from '@/components/admin/TerminalPanel';
+
+// Lazy Load Heavy Tabs
+const AnalyticsTab = lazy(() => import('@/components/admin/AnalyticsTab').then(module => ({ default: module.AnalyticsTab })));
+const MenuManagement = lazy(() => import('@/components/admin/MenuManagement').then(module => ({ default: module.MenuManagement })));
+const TerminalPanel = lazy(() => import('@/components/admin/TerminalPanel').then(module => ({ default: module.TerminalPanel })));
+
+const TabLoader = () => (
+    <div className="flex items-center justify-center h-64 w-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+);
 
 export default function AdminDashboard() {
     // Stores
@@ -30,7 +39,7 @@ export default function AdminDashboard() {
     const [selectedHistory, setSelectedHistory] = useState<DetailedHistory | null>(null);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({ topItems: [], dailyTotals: [], hourlyStats: [] });
-    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
+    // const [analytics, setAnalytics] = useState<AnalyticsData | null>(null); // Unused
     const [period, setPeriod] = useState<'today' | 'week' | 'month'>('week');
     const [isLoadingClose, setIsLoadingClose] = useState(false);
     const [sessionStatus, setSessionStatus] = useState<'OPEN' | 'CLOSED'>('CLOSED');
@@ -85,6 +94,7 @@ export default function AdminDashboard() {
     useEffect(() => {
         fetchStatus();
         fetchHistory(1);
+        // Defer analytics fetch until tab needed? Or just prefetch? Prefetch is fine.
         fetchAnalytics();
         fetchMenu();
         fetchOrders(); // Initial fetch
@@ -258,21 +268,27 @@ export default function AdminDashboard() {
 
                 {/* ANALYTICS TAB */}
                 <TabsContent value="analytics">
-                    <AnalyticsTab
-                        analytics={analyticsData}
-                        period={period}
-                        setPeriod={setPeriod}
-                    />
+                    <Suspense fallback={<TabLoader />}>
+                        <AnalyticsTab
+                            analytics={analyticsData}
+                            period={period}
+                            setPeriod={setPeriod}
+                        />
+                    </Suspense>
                 </TabsContent>
 
                 {/* MENU TAB */}
                 <TabsContent value="menu">
-                    <MenuManagement />
+                    <Suspense fallback={<TabLoader />}>
+                        <MenuManagement />
+                    </Suspense>
                 </TabsContent>
 
                 {/* DEVELOPER TAB */}
                 <TabsContent value="developer">
-                    <TerminalPanel />
+                    <Suspense fallback={<TabLoader />}>
+                        <TerminalPanel />
+                    </Suspense>
                 </TabsContent>
             </Tabs>
 

@@ -128,18 +128,17 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
           </div>
 
           <div className="space-y-0.5 pl-1">
-            {order.tableNumber && (
+            {order.tableNumber ? (
               <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
                 Table {order.tableNumber}
               </div>
-            )}
-            {order.beeperNumber && (
+            ) : order.beeperNumber ? (
               <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
                 Beeper {order.beeperNumber}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -168,30 +167,32 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
       </div>
 
       <div className="py-3 space-y-3 mb-4 border-t border-b border-border/50 border-dashed">
-        {order.items.map((item, index) => (
-          <div key={`${item.menuItem.id}-${index}`} className="flex items-start gap-3 group/item">
-            <span className="text-xl bg-secondary/30 w-8 h-8 flex items-center justify-center rounded-lg shadow-sm border border-border/50">
-              {item.menuItem.emoji}
-            </span>
-            <div className="flex-1">
-              <div className="flex justify-between items-start">
-                <div>
-                  <span className="font-medium text-sm text-foreground/90 group-hover/item:text-foreground transition-colors">
-                    {item.menuItem.name}
+        {order.items
+          .filter(item => item.menuItem.type === 'food' || !item.menuItem.type) // Show only Food
+          .map((item, index) => (
+            <div key={`${item.menuItem.id}-${index}`} className="flex items-start gap-3 group/item">
+              <span className="text-xl bg-secondary/30 w-8 h-8 flex items-center justify-center rounded-lg shadow-sm border border-border/50">
+                {item.menuItem.emoji}
+              </span>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="font-medium text-sm text-foreground/90 group-hover/item:text-foreground transition-colors">
+                      {item.menuItem.name}
+                    </span>
+                    {item.selectedFlavors && item.selectedFlavors.length > 0 && (
+                      <p className="text-xs text-muted-foreground/80 font-medium">
+                        + {item.selectedFlavors.join(', ')}
+                      </p>
+                    )}
+                  </div>
+                  <span className="font-bold text-sm bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[11px] ml-2">
+                    x{item.quantity}
                   </span>
-                  {item.selectedFlavors && item.selectedFlavors.length > 0 && (
-                    <p className="text-xs text-muted-foreground/80 font-medium">
-                      + {item.selectedFlavors.join(', ')}
-                    </p>
-                  )}
                 </div>
-                <span className="font-bold text-sm bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[11px] ml-2">
-                  x{item.quantity}
-                </span>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
       <div className="relative z-10">
