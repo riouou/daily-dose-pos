@@ -12,7 +12,9 @@ export const createAdminRouter = (io) => {
             const { rows: openSessions } = await query("SELECT * FROM sessions WHERE status = 'OPEN'");
             res.json({
                 status: openSessions.length > 0 ? 'OPEN' : 'CLOSED',
-                session: openSessions[0] || null
+                session: openSessions[0] || null,
+                maintenance: AppState.isMaintenance,
+                isTest: AppState.isTest
             });
         } catch (err) {
             console.error('Error fetching session status:', err);
@@ -57,7 +59,7 @@ export const createAdminRouter = (io) => {
             );
 
             // Set maintenance
-            AppState.isMaintenance = true;
+            // AppState.isMaintenance = true; // REMOVED: Auto-maintenance confuses separate "Closed" state
 
             // Also mark all open orders as Closed/Completed?
             // Optional: for now just close the session tracking.
@@ -213,7 +215,9 @@ export const createAdminRouter = (io) => {
                         { message: '  seed [count] - Generate dummy orders', type: 'info' },
                         { message: '  clear - Clear console', type: 'info' },
                         { message: '  version - Show server version', type: 'info' },
-                        { message: '  maintenance [on|off] - Toggle maintenance mode', type: 'info' }
+                        { message: '  maintenance [on|off] - Toggle maintenance mode', type: 'info' },
+                        { message: '  test-mode [on|off] - Toggle test mode (orders allowed when closed)', type: 'info' },
+                        { message: '  delete-analytics - [DANGER] Wipe all orders/sessions', type: 'info' }
                     );
                     break;
 

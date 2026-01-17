@@ -5,9 +5,25 @@ import { format } from "date-fns";
 interface SystemInfoCardProps {
     lastClosed?: string;
     status: 'OPEN' | 'CLOSED';
+    maintenance?: boolean;
+    isTest?: boolean;
 }
 
-export function SystemInfoCard({ lastClosed, status }: SystemInfoCardProps) {
+export function SystemInfoCard({ lastClosed, status, maintenance, isTest }: SystemInfoCardProps) {
+    let statusText = 'Online';
+    let statusColor = 'text-success font-medium';
+
+    if (maintenance) {
+        statusText = 'Maintenance Mode';
+        statusColor = 'text-warning font-bold';
+    } else if (isTest) {
+        statusText = 'Test Mode';
+        statusColor = 'text-blue-500 font-bold';
+    } else if (status === 'CLOSED') {
+        statusText = 'Closed';
+        statusColor = 'text-muted-foreground font-medium';
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -17,8 +33,8 @@ export function SystemInfoCard({ lastClosed, status }: SystemInfoCardProps) {
                 <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                         <span>Server Status:</span>
-                        <span className={status === 'OPEN' ? "text-success font-medium" : "text-warning font-medium"}>
-                            {status === 'OPEN' ? 'Online' : 'Maintenance Mode'}
+                        <span className={statusColor}>
+                            {statusText}
                         </span>
                     </div>
                     <div className="flex justify-between">

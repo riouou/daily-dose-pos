@@ -43,6 +43,8 @@ export default function AdminDashboard() {
     const [period, setPeriod] = useState<'today' | 'week' | 'month'>('week');
     const [isLoadingClose, setIsLoadingClose] = useState(false);
     const [sessionStatus, setSessionStatus] = useState<'OPEN' | 'CLOSED'>('CLOSED');
+    const [isMaintenance, setIsMaintenance] = useState(false);
+    const [isTest, setIsTest] = useState(false);
 
     // Fetch Data Functions
     const fetchStatus = useCallback(async () => {
@@ -51,6 +53,8 @@ export default function AdminDashboard() {
             if (res.ok) {
                 const data = await res.json();
                 setSessionStatus(data.status);
+                setIsMaintenance(data.maintenance);
+                setIsTest(data.isTest);
             }
         } catch (error) {
             console.error('Error fetching status:', error);
@@ -120,6 +124,11 @@ export default function AdminDashboard() {
     const activeOrders = useOrderStore(state => state.orders);
 
     useEffect(() => {
+        if (sessionStatus === 'CLOSED') {
+            setStats({ orders: 0, sales: 0 });
+            return;
+        }
+
         // Calculate stats from active orders for the "Current Session"
         const sessionStats = activeOrders.reduce((acc, order) => {
             if (order.status !== 'cancelled') {
@@ -129,7 +138,7 @@ export default function AdminDashboard() {
             return acc;
         }, { orders: 0, sales: 0 });
         setStats(sessionStats);
-    }, [activeOrders]);
+    }, [activeOrders, sessionStatus]);
 
 
     // Handlers
@@ -253,7 +262,12 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* System Status */}
-                        <SystemInfoCard lastClosed={lastClosed} status={sessionStatus} />
+                        <SystemInfoCard
+                            lastClosed={lastClosed}
+                            status={sessionStatus}
+                            maintenance={isMaintenance}
+                            isTest={isTest}
+                        />
                     </div>
 
                     {/* History Table */}
