@@ -461,7 +461,7 @@ app.post('/api/orders', validate(orderSchema), async (req, res) => {
                             // Check compatibility
                             let isCompatible = false;
 
-                            if (section.allowedCategories && section.allowedCategories.length > 0) {
+                            if (section.allowedCategories) {
                                 isCompatible = section.allowedCategories.includes(dbItem.category);
                             } else if (section.allowedTypes) {
                                 isCompatible = section.allowedTypes.includes(dbItem.type);

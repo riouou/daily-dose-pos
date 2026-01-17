@@ -37,7 +37,7 @@ export function MenuItemCard({ item, onAdd }: MenuItemCardProps) {
   // Filter global addons applicable to this item category (or type for legacy)
   const applicableGlobalAddons = globalAddons.filter(addon => {
     // New Category Logic
-    if (addon.allowedCategories && addon.allowedCategories.length > 0) {
+    if (addon.allowedCategories) {
       return addon.allowedCategories.includes(item.category);
     }
 

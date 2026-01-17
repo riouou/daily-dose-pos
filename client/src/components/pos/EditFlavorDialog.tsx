@@ -33,7 +33,7 @@ export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onC
 
     // Filter global addons applicable to this item category
     const applicableGlobalAddons = globalAddons.filter(addon => {
-        if (addon.allowedCategories && addon.allowedCategories.length > 0) {
+        if (addon.allowedCategories) {
             return addon.allowedCategories.includes(item.category);
         }
         const addonAny = addon as any;

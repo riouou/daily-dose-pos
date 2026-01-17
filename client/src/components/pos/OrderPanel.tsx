@@ -149,7 +149,7 @@ export function OrderPanel() {
                         const { globalAddons } = useMenuStore.getState();
                         // Filter relevant sections first
                         const relevantAddons = globalAddons.filter(addon => {
-                          if (addon.allowedCategories && addon.allowedCategories.length > 0) {
+                          if (addon.allowedCategories) {
                             return addon.allowedCategories.includes(orderItem.menuItem.category);
                           }
                           const addonAny = addon as any;
