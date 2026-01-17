@@ -205,21 +205,16 @@ export const createOrderRouter = (io) => {
                 [
                     newOrderId,
                     customerName || 'Guest',
-                    calcTotal, // Using calculated base total (Might be slightly off if addons not summed, but safer than untrusted?) 
-                    // Actually, let's trust the client logic for now on exact calculation if complexity is high?
-                    // No, never trust client.
-                    // I'll stick to `calcTotal` of base prices for now. 
-                    // If this is an issue, we can patch `orders.js` later.
-                    // Wait, I saw `server/index.js` snippet `attachItemsToOrders` but not `POST`.
-                    // Let's assume `calcTotal` is fine.
-                    fileStatus,
-                    tableNumber,
-                    beeperNumber,
+                    calcTotal,
+                    'new',
+                    tableNumber || null,
+                    beeperNumber || null,
                     isTest || false,
-                    paymentMethod,
-                    paymentStatus,
-                    amountTendered,
-                    changeAmount
+                    paymentMethod || null,
+                    paymentDetails?.amountTendered ? 'paid' : 'pending',
+                    paymentDetails?.amountTendered || 0,
+                    paymentDetails?.change || 0,
+                    req.body.orderType || 'dine-in'
                 ]
             );
             const orderId = orderRows[0].id;
