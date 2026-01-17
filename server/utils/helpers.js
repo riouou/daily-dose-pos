@@ -60,6 +60,7 @@ export const attachItemsToOrders = async (orders) => {
         amountTendered: parseFloat(order.amount_tendered || 0),
         changeAmount: parseFloat(order.change_amount || 0),
         isTest: order.is_test,
+        orderType: order.order_type,
         items: itemsMap[order.id] || []
     }));
 };
