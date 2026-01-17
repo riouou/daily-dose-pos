@@ -22,11 +22,18 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuLabel
+} from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { ChevronsUpDown, Check } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { toast } from 'sonner';
 
 export function MenuManagement() {
@@ -750,72 +757,70 @@ export function MenuManagement() {
                                     />
                                     <div className="flex flex-col gap-1.5 shrink-0 max-w-[400px]">
                                         <span className="text-xs text-muted-foreground font-medium">Apply to Categories:</span>
-                                        <Popover open={openSectionIndex === sIdx} onOpenChange={(isOpen) => setOpenSectionIndex(isOpen ? sIdx : null)}>
-                                            <PopoverTrigger asChild>
-                                                <Button variant="outline" role="combobox" className="w-full justify-between h-9 text-left font-normal">
-                                                    {(() => {
-                                                        const currentCats = section.allowedCategories;
-                                                        // If undefined, it means ALL
-                                                        if (!currentCats) return "All Categories";
-                                                        if (currentCats.length === 0) return "No Categories Selected";
-                                                        if (currentCats.length === categories.filter(c => c !== 'All').length) return "All Categories";
-                                                        if (currentCats.length === 1) return currentCats[0];
-                                                        return `${currentCats.length} Categories Selected`;
-                                                    })()}
-                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-[300px] p-0" align="start">
-                                                <div className="flex items-center border-b p-2 gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 flex-1 text-xs"
-                                                        onClick={() => {
-                                                            const updated = [...localAddons];
-                                                            updated[sIdx].allowedCategories = categories.filter(c => c !== 'All');
-                                                            setLocalAddons(updated);
-                                                        }}
-                                                    >
-                                                        Select All
+                                        <div className="flex flex-col gap-1.5 shrink-0 max-w-[400px]">
+                                            <span className="text-xs text-muted-foreground font-medium">Apply to Categories:</span>
+                                            <DropdownMenu open={openSectionIndex === sIdx} onOpenChange={(isOpen) => setOpenSectionIndex(isOpen ? sIdx : null)}>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="outline" role="combobox" className="w-full justify-between h-9 text-left font-normal">
+                                                        {(() => {
+                                                            const currentCats = section.allowedCategories;
+                                                            if (!currentCats) return "All Categories";
+                                                            if (currentCats.length === 0) return "No Categories Selected";
+                                                            if (currentCats.length === categories.filter(c => c !== 'All').length) return "All Categories";
+                                                            if (currentCats.length === 1) return currentCats[0];
+                                                            return `${currentCats.length} Categories Selected`;
+                                                        })()}
+                                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                                     </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-8 flex-1 text-xs text-destructive hover:text-destructive"
-                                                        onClick={() => {
-                                                            const updated = [...localAddons];
-                                                            updated[sIdx].allowedCategories = [];
-                                                            setLocalAddons(updated);
-                                                        }}
-                                                    >
-                                                        Clear
-                                                    </Button>
-                                                </div>
-                                                <ScrollArea className="h-[200px] p-2">
-                                                    <div className="flex flex-col gap-1">
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="w-[300px]" align="start">
+                                                    <div className="flex items-center gap-2 p-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 flex-1 text-xs justify-start px-2"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                const updated = [...localAddons];
+                                                                updated[sIdx].allowedCategories = categories.filter(c => c !== 'All');
+                                                                setLocalAddons(updated);
+                                                            }}
+                                                        >
+                                                            Select All
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-8 flex-1 text-xs justify-start px-2 text-destructive hover:text-destructive"
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                const updated = [...localAddons];
+                                                                updated[sIdx].allowedCategories = []; // Empty array = None
+                                                                setLocalAddons(updated);
+                                                            }}
+                                                        >
+                                                            Clear
+                                                        </Button>
+                                                    </div>
+                                                    <DropdownMenuSeparator />
+                                                    <ScrollArea className="h-[300px]">
                                                         {categories.filter(c => c !== 'All').map(cat => {
                                                             const isSelected = !section.allowedCategories || section.allowedCategories.includes(cat);
                                                             return (
-                                                                <div key={cat} className="flex items-center space-x-2 rounded-sm hover:bg-accent p-1">
-                                                                    <Checkbox
-                                                                        id={`cat-${sIdx}-${cat}`}
-                                                                        checked={isSelected}
-                                                                        onCheckedChange={() => handleGlobalSectionCategoryToggle(sIdx, cat)}
-                                                                    />
-                                                                    <label
-                                                                        htmlFor={`cat-${sIdx}-${cat}`}
-                                                                        className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer py-1"
-                                                                    >
-                                                                        {cat}
-                                                                    </label>
-                                                                </div>
+                                                                <DropdownMenuCheckboxItem
+                                                                    key={cat}
+                                                                    checked={isSelected}
+                                                                    onSelect={(e) => e.preventDefault()}
+                                                                    onCheckedChange={() => handleGlobalSectionCategoryToggle(sIdx, cat)}
+                                                                >
+                                                                    {cat}
+                                                                </DropdownMenuCheckboxItem>
                                                             );
                                                         })}
-                                                    </div>
-                                                </ScrollArea>
-                                            </PopoverContent>
-                                        </Popover>
+                                                    </ScrollArea>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
 
                                     <div className="flex flex-col gap-1.5 ml-4">
