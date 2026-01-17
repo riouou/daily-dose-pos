@@ -99,10 +99,10 @@ export function MenuManagement() {
         setSectionOptionInputs({ ...sectionOptionInputs, [sectionIndex]: '' });
     };
 
-    const handleRemoveSectionOption = (sectionIndex: number, option: string) => {
+    const handleRemoveSectionOption = (sectionIndex: number, optionIndex: number) => {
         const sections = (currentItem.flavors as FlavorSection[]) || [];
         const newSections = [...sections];
-        newSections[sectionIndex].options = newSections[sectionIndex].options.filter(o => o !== option);
+        newSections[sectionIndex].options.splice(optionIndex, 1);
         setCurrentItem({ ...currentItem, flavors: newSections });
     };
 
@@ -623,17 +623,25 @@ export function MenuManagement() {
 
                                             {/* Options List */}
                                             <div className="flex flex-wrap gap-2">
-                                                {section.options.map((opt) => (
-                                                    <div key={opt} className="flex items-center gap-1 bg-background border px-2 py-1 rounded-md text-xs">
-                                                        <span>{opt}</span>
-                                                        <button
-                                                            onClick={() => handleRemoveSectionOption(idx, opt)}
-                                                            className="text-muted-foreground hover:text-destructive transition-colors"
-                                                        >
-                                                            <Trash2 className="h-3 w-3" />
-                                                        </button>
-                                                    </div>
-                                                ))}
+                                                {section.options.map((opt, oIdx) => {
+                                                    const optName = typeof opt === 'string' ? opt : opt.name;
+                                                    const optPrice = typeof opt === 'string' ? 0 : opt.price;
+
+                                                    return (
+                                                        <div key={`${optName}-${oIdx}`} className="flex items-center gap-1 bg-background border px-2 py-1 rounded-md text-xs">
+                                                            <span>{optName}</span>
+                                                            {optPrice && optPrice > 0 ? (
+                                                                <span className="text-primary font-semibold ml-1">+₱{optPrice}</span>
+                                                            ) : null}
+                                                            <button
+                                                                onClick={() => handleRemoveSectionOption(idx, oIdx)}
+                                                                className="text-muted-foreground hover:text-destructive transition-colors"
+                                                            >
+                                                                <Trash2 className="h-3 w-3" />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
                                         </div>
                                     ))}

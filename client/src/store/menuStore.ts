@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { io } from 'socket.io-client';
-import { MenuItem, Category } from '@/types/pos';
+import { MenuItem, Category, FlavorSection } from '@/types/pos';
 import { toast } from 'sonner';
 import { fetchWithRetry } from '@/lib/api';
 
