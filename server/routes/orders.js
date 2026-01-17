@@ -199,8 +199,9 @@ export const createOrderRouter = (io) => {
                     payment_method,
                     payment_status,
                     amount_tendered,
-                    change_amount
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id`,
+                    change_amount,
+                    order_type
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
                 [
                     newOrderId,
                     customerName || 'Guest',

@@ -125,6 +125,15 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
                 New
               </span>
             )}
+            {order.orderType === 'take-out' ? (
+              <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-none">
+                Take Out
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300">
+                Dine In
+              </Badge>
+            )}
           </div>
 
           <div className="space-y-0.5 pl-1">

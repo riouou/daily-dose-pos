@@ -15,7 +15,7 @@ interface OrderState {
   removeFromOrder: (itemId: string, flavors?: string[]) => void;
   updateQuantity: (itemId: string, flavors: string[] | undefined, quantity: number) => void;
   clearOrder: () => void;
-  submitOrder: (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }, customerName?: string) => Promise<Order | undefined>;
+  submitOrder: (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }, customerName?: string, orderType?: 'dine-in' | 'take-out') => Promise<Order | undefined>;
   updateOrderStatus: (orderId: string, status: Order['status']) => void;
   markAsPaid: (orderId: string, paymentDetails?: { method: string, amountTendered?: number, change?: number }) => Promise<void>;
   fetchOrders: () => Promise<void>;
@@ -214,7 +214,7 @@ export const useOrderStore = create<OrderState>()(
         }));
       },
 
-      submitOrder: async (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }, customerName?: string) => {
+      submitOrder: async (tableNumber?: number, beeperNumber?: number, paymentDetails?: { method: string, amountTendered?: number, change?: number }, customerName?: string, orderType: 'dine-in' | 'take-out' = 'dine-in') => {
         const { currentOrder } = get();
         if (currentOrder.length === 0) return;
 
@@ -233,7 +233,8 @@ export const useOrderStore = create<OrderState>()(
           paymentMethod: paymentDetails?.method || 'Cash',
           amountTendered: paymentDetails?.amountTendered || 0,
           changeAmount: paymentDetails?.change || 0,
-          isTest: false // Will be overridden by server constant if problematic, but good to have type
+          isTest: false,
+          orderType
         };
 
         newOrderPayload.total = previousOrder.reduce(

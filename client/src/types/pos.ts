@@ -42,6 +42,7 @@ export interface Order {
   paymentStatus?: 'paid' | 'pending';
   amountTendered?: number;
   changeAmount?: number;
+  orderType?: 'dine-in' | 'take-out';
 }
 
 export type Category = 'All' | 'Basic' | string;

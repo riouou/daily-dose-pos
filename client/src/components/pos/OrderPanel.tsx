@@ -17,6 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PaymentDialog } from './PaymentDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DrinkTicketList } from './DrinkTicketList';
@@ -27,6 +28,7 @@ export function OrderPanel() {
 
   const [beeperNumber, setBeeperNumber] = useState<string>('');
   const [tableNumber, setTableNumber] = useState<string>('');
+  const [orderType, setOrderType] = useState<'dine-in' | 'take-out'>('dine-in');
 
   const [errorDialogOpen, setErrorDialogOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -59,10 +61,11 @@ export function OrderPanel() {
     setIsSubmitting(true);
 
     try {
-      await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails, customerName);
+      await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails, customerName, orderType);
 
       setBeeperNumber('');
       setTableNumber('');
+      setOrderType('dine-in'); // Reset to default
       setPaymentDialogOpen(false); // Close dialog on success
       toast.success('Order sent to kitchen!');
     } catch (error) {
@@ -206,66 +209,57 @@ export function OrderPanel() {
             )}
           </div>
 
-          <div className="p-4 border-t border-border space-y-3 mt-auto">
-            <div className="space-y-2 pb-2 border-b border-border/50">
-              <div className="flex justify-between items-center text-base">
-                <span className="text-muted-foreground">Total</span>
-                <span className="font-bold text-xl text-black dark:text-primary">₱{total.toFixed(2)}</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium min-w-[50px]">Table:</span>
-                  <Input
-                    type="number"
-                    placeholder="#"
-                    value={tableNumber}
-                    onChange={(e) => setTableNumber(e.target.value)}
-                    className="text-right font-medium"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium min-w-[50px]">Beeper:</span>
-                  <Input
-                    type="number"
-                    placeholder="#"
-                    value={beeperNumber}
-                    onChange={(e) => setBeeperNumber(e.target.value)}
-                    className="text-right font-medium"
-                  />
-                </div>
-              </div>
+          <span className="text-sm font-medium min-w-[50px]">Table:</span>
+          <Input
+            type="number"
+            placeholder="#"
+            value={tableNumber}
+            onChange={(e) => setTableNumber(e.target.value)}
+            className="text-right font-medium"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium min-w-[50px]">Beeper:</span>
+          <Input
+            type="number"
+            placeholder="#"
+            value={beeperNumber}
+            onChange={(e) => setBeeperNumber(e.target.value)}
+            className="text-right font-medium"
+          />
+        </div>
+    </div>
 
 
-            </div>
+            </div >
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => { clearOrder(); setBeeperNumber(''); setTableNumber(''); }}
-                disabled={currentOrder.length === 0}
-              >
-                Clear
-              </Button>
-              <div className="flex gap-2">
-                <Button
-                  size="lg"
-                  className="flex-1"
-                  onClick={handleProceed}
-                  disabled={currentOrder.length === 0}
-                >
-                  Proceed
-                </Button>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
+    <div className="grid grid-cols-2 gap-2">
+      <Button
+        variant="outline"
+        size="lg"
+        onClick={() => { clearOrder(); setBeeperNumber(''); setTableNumber(''); }}
+        disabled={currentOrder.length === 0}
+      >
+        Clear
+      </Button>
+      <div className="flex gap-2">
+        <Button
+          size="lg"
+          className="flex-1"
+          onClick={handleProceed}
+          disabled={currentOrder.length === 0}
+        >
+          Proceed
+        </Button>
+      </div>
+    </div>
+          </div >
+        </TabsContent >
 
-        <TabsContent value="drinks" className="flex-1 min-h-0 data-[state=inactive]:hidden mt-0">
-          <DrinkTicketList />
-        </TabsContent>
-      </Tabs>
+    <TabsContent value="drinks" className="flex-1 min-h-0 data-[state=inactive]:hidden mt-0">
+      <DrinkTicketList />
+    </TabsContent>
+      </Tabs >
 
       <AlertDialog open={errorDialogOpen} onOpenChange={setErrorDialogOpen}>
         <AlertDialogContent>
