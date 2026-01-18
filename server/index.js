@@ -102,9 +102,12 @@ const initDb = async () => {
 };
 
 // Mount Routers
+// Mount Routers
+import { createSettingsRouter } from './routes/settings.js';
 app.use('/api/menu', createMenuRouter(io));
 app.use('/api/orders', createOrderRouter(io));
 app.use('/api/admin', createAdminRouter(io));
+app.use('/api/settings', createSettingsRouter(io));
 
 // Serve Frontend (if needed)
 // app.use(express.static(path.join(__dirname, '../client/dist')));
