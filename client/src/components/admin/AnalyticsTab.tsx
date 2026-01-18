@@ -17,8 +17,8 @@ interface AnalyticsTabProps {
 
 export function AnalyticsTab({ analytics, period, setPeriod }: AnalyticsTabProps) {
     // Calculate Summary Stats
-    const totalSales = analytics.dailyTotals.reduce((acc, curr) => acc + curr.sales, 0);
-    const totalOrders = analytics.dailyTotals.reduce((acc, curr) => acc + curr.orders, 0);
+    const totalSales = analytics.dailyTotals.reduce((acc, curr) => acc + Number(curr.sales), 0);
+    const totalOrders = analytics.dailyTotals.reduce((acc, curr) => acc + Number(curr.orders), 0);
     const avgOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
     const topItem = analytics.topItems[0];
 

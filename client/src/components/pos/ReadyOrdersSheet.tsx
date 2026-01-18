@@ -25,15 +25,20 @@ export function ReadyOrdersSheet() {
 
     // Helper to check if order needs payment
     const needsPayment = (o: Order) => {
-        if (o.paymentStatus !== 'pending') return false; // Already paid
-        // GCash and Bank Transfer are considered "pre-paid" or "verified elsewhere" if not strictly pending on POS
-        // But user said "make it so GCash and Bank Transfer doesn't go to needs payment"
-        // implying they are treated as paid immediately or don't block.
+        if (o.paymentStatus !== 'pending') return false;
         if (o.paymentMethod === 'GCash' || o.paymentMethod === 'Bank Transfer') return false;
         return true;
     };
 
-    const unpaidOrders = readyOrders.filter(needsPayment);
+    // Unpaid orders: Include ALL active orders that need payment (New, Preparing, Ready, Completed)
+    // We exclude cancelled/closed.
+    const unpaidOrders = orders.filter(o =>
+        o.status !== 'cancelled' &&
+        o.status !== 'closed' &&
+        needsPayment(o)
+    );
+
+    // Paid orders: Only show READY orders here (standard "Ready for Pickup" flow)
     const paidOrders = readyOrders.filter(o => !needsPayment(o));
 
     const handlePaymentSettle = async (details: { method: string, amountTendered?: number, change?: number }) => {
@@ -42,7 +47,8 @@ export function ReadyOrdersSheet() {
         setSelectedOrder(null);
     };
 
-    if (readyOrders.length === 0) return null;
+    // Show sheet if there are ANY ready orders OR ANY unpaid orders
+    if (readyOrders.length === 0 && unpaidOrders.length === 0) return null;
 
     const renderOrderCard = (order: Order) => (
         <div key={order.id} className="border rounded-lg p-4 bg-card shadow-sm">
@@ -112,9 +118,9 @@ export function ReadyOrdersSheet() {
             <SheetTrigger asChild>
                 <Button variant="outline" className="relative gap-2 border-warning text-warning hover:bg-warning/10">
                     <Bell className="w-5 h-5 animate-pulse" />
-                    <span className="hidden sm:inline">Ready for Pickup</span>
+                    <span className="hidden sm:inline">Ready/Unpaid</span>
                     <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center rounded-full text-[10px]">
-                        {readyOrders.length}
+                        {readyOrders.length + unpaidOrders.length}
                     </Badge>
                 </Button>
             </SheetTrigger>
