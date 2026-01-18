@@ -250,7 +250,7 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
                 </div>
               </div>
             );
-          })}}
+          })}
       </div>
 
       <div className="relative z-10">
