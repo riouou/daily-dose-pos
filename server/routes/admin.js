@@ -190,11 +190,8 @@ export const createAdminRouter = (io) => {
                 ORDER BY date ASC
             `);
 
-            res.json({
-                topItems,
-                dailyTotals,
-                // Total Cups Sold (Drinks only)
-                const { rows: cupsData } = await query(`
+            // Total Cups Sold (Drinks only)
+            const { rows: cupsData } = await query(`
                 SELECT SUM(quantity) as total
                 FROM order_items
                 JOIN menu_items ON menu_items.id = order_items.menu_item_id
@@ -204,18 +201,18 @@ export const createAdminRouter = (io) => {
                 AND ${dateFilter.replace('created_at', 'orders.created_at')}
             `);
 
-                res.json({
-                    topItems,
-                    dailyTotals,
-                    hourlyStats: [], // Simplified for now
-                    totalCups: parseInt(cupsData[0]?.total || 0)
-                });
+            res.json({
+                topItems,
+                dailyTotals,
+                hourlyStats: [], // Simplified for now
+                totalCups: parseInt(cupsData[0]?.total || 0)
+            });
 
-            } catch (err) {
-                console.error('Error fetching analytics:', err);
-                res.status(500).json({ error: 'Failed to fetch analytics' });
-            }
-        });
+        } catch (err) {
+            console.error('Error fetching analytics:', err);
+            res.status(500).json({ error: 'Failed to fetch analytics' });
+        }
+    });
 
     // POST /api/admin/command (Developer Console)
     router.post('/command', async (req, res) => {
