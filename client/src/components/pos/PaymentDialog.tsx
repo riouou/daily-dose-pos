@@ -117,7 +117,6 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excl
                                     setError("");
                                 }}
                                 className={cn(error && "border-destructive focus-visible:ring-destructive")}
-                                autoFocus
                             />
                             <Button
                                 variant="secondary"
@@ -147,7 +146,6 @@ export function PaymentDialog({ open, onOpenChange, totalAmount, onConfirm, excl
                             placeholder="Enter customer name"
                             value={customerName}
                             onChange={(e) => setCustomerName(e.target.value)}
-                            autoFocus
                         />
                     </div>
                 )}

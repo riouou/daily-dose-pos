@@ -192,23 +192,33 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
 
             // Helper to find category for a flavor
             const getFlavorCategory = (flavorName: string): string => {
-              // Check item specific flavors
-              if (Array.isArray(item.menuItem.flavors)) {
-                for (const section of item.menuItem.flavors as FlavorSection[]) {
-                  if (typeof section === 'object' && section.options) {
-                    const found = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
-                    if (found) return section.name;
-                  }
-                }
-              }
-
-              // Check global addons
+              // 1. Check global addons first (User said "add on is the one in the manage add on tab")
               for (const section of globalAddons) {
                 const found = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
                 if (found) return section.name;
               }
 
-              return 'Add-ons'; // Default
+              // 2. Check item specific flavors
+              if (Array.isArray(item.menuItem.flavors)) {
+                // If it's in the item's flavor list (whether string[] or FlavorSection[]), it's a "Flavor"
+                // Checking simple strings
+                if (item.menuItem.flavors.length > 0 && typeof item.menuItem.flavors[0] === 'string') {
+                  if ((item.menuItem.flavors as string[]).includes(flavorName)) {
+                    return 'Flavors';
+                  }
+                }
+
+                // Checking sections
+                for (const section of item.menuItem.flavors as FlavorSection[]) {
+                  if (typeof section === 'object' && section.options) {
+                    const found = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                    // User requested "Categorized flavors" to also say "Flavors"
+                    if (found) return 'Flavors';
+                  }
+                }
+              }
+
+              return 'Flavors'; // Default to Flavors instead of Add-ons
             };
 
             // Group flavors by category
