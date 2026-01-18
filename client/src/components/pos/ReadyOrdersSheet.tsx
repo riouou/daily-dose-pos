@@ -34,7 +34,6 @@ export function ReadyOrdersSheet() {
     // We exclude cancelled/closed.
     const unpaidOrders = orders.filter(o =>
         o.status !== 'cancelled' &&
-        o.status !== 'closed' &&
         needsPayment(o)
     );
 
