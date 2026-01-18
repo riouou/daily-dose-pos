@@ -97,7 +97,7 @@ export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onC
             if (isSelected) {
                 return prev.filter(f => f !== flavor);
             } else {
-                const max = item.maxFlavors || 1;
+                const max = item.maxFlavors || 99;
                 if (prev.length >= max) {
                     if (max === 1) return [flavor];
                     return prev;
@@ -107,7 +107,7 @@ export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onC
         });
     };
 
-    const toggleSectionFlavor = (sectionIndex: number, flavor: string, max: number = 1) => {
+    const toggleSectionFlavor = (sectionIndex: number, flavor: string, max: number = 99) => {
         setSectionSelections(prev => {
             const current = prev[sectionIndex] || [];
             const isSelected = current.includes(flavor);
@@ -168,7 +168,7 @@ export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onC
                                                             "w-full h-12 text-sm justify-start px-4 transition-all focus-visible:ring-0 focus-visible:ring-offset-0",
                                                             isSectionSelected(idx, optName) ? "border-primary" : "hover:border-primary hover:bg-primary/5"
                                                         )}
-                                                        onClick={() => toggleSectionFlavor(idx, optName, section.max)}
+                                                        onClick={() => toggleSectionFlavor(idx, optName, section.max || 99)}
                                                     >
                                                         <div className="flex-1 text-left truncate flex items-center justify-between">
                                                             <span>{optName}</span>
