@@ -1,7 +1,7 @@
 import { MenuItem, FlavorSection } from '@/types/pos';
 import { useMenuStore } from '@/store/menuStore';
 import { cn } from '@/lib/utils';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -28,41 +28,47 @@ export function EditFlavorDialog({ open, onOpenChange, item, currentFlavors, onC
     const [selectedFlavors, setSelectedFlavors] = useState<string[]>([]);
     const [sectionSelections, setSectionSelections] = useState<Record<number, string[]>>({});
 
-    // Logic to determine sections (DUPLICATED from MenuItemCard - keep in sync)
-    const hasCategorizedFlavors = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
+    // Memoize the derived state to prevent re-creation on every render
+    // This fixes the bug where useEffect would re-run and reset selections on every click
+    const { sections, isCategorized, simpleFlavors } = useMemo(() => {
+        // Logic to determine sections (DUPLICATED from MenuItemCard - keep in sync)
+        const hasCategorizedFlavors = Array.isArray(item.flavors) && item.flavors.length > 0 && typeof item.flavors[0] !== 'string';
 
-    // Filter global addons applicable to this item category
-    const applicableGlobalAddons = globalAddons.filter(addon => {
-        if (addon.allowedCategories) {
-            return addon.allowedCategories.includes(item.category);
+        // Filter global addons applicable to this item category
+        const applicableGlobalAddons = globalAddons.filter(addon => {
+            if (addon.allowedCategories) {
+                return addon.allowedCategories.includes(item.category);
+            }
+            const addonAny = addon as any;
+            if (addonAny.allowedTypes) {
+                return addonAny.allowedTypes.includes(item.type);
+            }
+            return item.type === 'drink';
+        });
+
+        const isCategorized = hasCategorizedFlavors || applicableGlobalAddons.length > 0;
+
+        let sections: FlavorSection[] = [];
+        if (hasCategorizedFlavors) {
+            sections = [...(item.flavors as FlavorSection[])];
+        } else if (item.flavors && item.flavors.length > 0) {
+            if (isCategorized) {
+                sections = [{
+                    name: 'Options',
+                    max: item.maxFlavors || 1,
+                    options: item.flavors as string[]
+                }];
+            }
         }
-        const addonAny = addon as any;
-        if (addonAny.allowedTypes) {
-            return addonAny.allowedTypes.includes(item.type);
+        // Append applicable global addons
+        if (applicableGlobalAddons.length > 0) {
+            sections = [...sections, ...applicableGlobalAddons];
         }
-        return item.type === 'drink';
-    });
 
-    const isCategorized = hasCategorizedFlavors || applicableGlobalAddons.length > 0;
+        const simpleFlavors = !isCategorized ? (item.flavors as string[]) : [];
 
-    let sections: FlavorSection[] = [];
-    if (hasCategorizedFlavors) {
-        sections = [...(item.flavors as FlavorSection[])];
-    } else if (item.flavors && item.flavors.length > 0) {
-        if (isCategorized) {
-            sections = [{
-                name: 'Options',
-                max: item.maxFlavors || 1,
-                options: item.flavors as string[]
-            }];
-        }
-    }
-    // Append applicable global addons
-    if (applicableGlobalAddons.length > 0) {
-        sections = [...sections, ...applicableGlobalAddons];
-    }
-
-    const simpleFlavors = !isCategorized ? (item.flavors as string[]) : [];
+        return { sections, isCategorized, simpleFlavors };
+    }, [item, globalAddons]);
 
     // Init state from currentFlavors when dialog opens
     useEffect(() => {
