@@ -22,8 +22,19 @@ export function ReadyOrdersSheet() {
 
     // Filter for orders that are 'ready'
     const readyOrders = orders.filter((o) => o.status === 'ready');
-    const unpaidOrders = readyOrders.filter(o => o.paymentStatus === 'pending');
-    const paidOrders = readyOrders.filter(o => o.paymentStatus !== 'pending'); // 'paid'
+
+    // Helper to check if order needs payment
+    const needsPayment = (o: Order) => {
+        if (o.paymentStatus !== 'pending') return false; // Already paid
+        // GCash and Bank Transfer are considered "pre-paid" or "verified elsewhere" if not strictly pending on POS
+        // But user said "make it so GCash and Bank Transfer doesn't go to needs payment"
+        // implying they are treated as paid immediately or don't block.
+        if (o.paymentMethod === 'GCash' || o.paymentMethod === 'Bank Transfer') return false;
+        return true;
+    };
+
+    const unpaidOrders = readyOrders.filter(needsPayment);
+    const paidOrders = readyOrders.filter(o => !needsPayment(o));
 
     const handlePaymentSettle = async (details: { method: string, amountTendered?: number, change?: number }) => {
         if (!selectedOrder) return;
