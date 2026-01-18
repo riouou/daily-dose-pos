@@ -54,24 +54,25 @@ export function OrderPanel() {
   };
 
   const handlePaymentConfirm = async (paymentDetails: { method: string, amountTendered?: number, change?: number }, customerName?: string) => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
+    // Optimistic UI: Close immediately
+    setPaymentDialogOpen(false);
 
-    try {
-      await submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails, customerName, orderType);
+    // Reset local state immediately
+    setBeeperNumber('');
+    setTableNumber('');
+    setOrderType('dine-in');
 
-      setBeeperNumber('');
-      setTableNumber('');
-      setOrderType('dine-in'); // Reset to default
-      setPaymentDialogOpen(false); // Close dialog on success
-      toast.success('Order sent to kitchen!');
-    } catch (error) {
-      const err = error as Error;
-      setErrorMessage(err.message || 'Failed to submit order');
-      setErrorDialogOpen(true);
-    } finally {
-      setIsSubmitting(false);
-    }
+    // Submit in background
+    submitOrder(parseInt(tableNumber) || undefined, parseInt(beeperNumber) || undefined, paymentDetails, customerName, orderType)
+      .then(() => {
+        toast.success('Order sent to kitchen!');
+      })
+      .catch((error) => {
+        const err = error as Error;
+        setErrorMessage(err.message || 'Failed to submit order');
+        setErrorDialogOpen(true);
+        // Re-open if failed? Maybe not, just show error.
+      });
   };
 
   return (

@@ -1,8 +1,9 @@
 import { Clock, ChefHat, CheckCircle2, Archive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useState, useEffect } from 'react';
-import { Order } from '@/types/pos';
+import { Order, FlavorSection } from '@/types/pos';
 import { useOrderStore } from '@/store/orderStore';
+import { useMenuStore } from '@/store/menuStore';
 import { cn } from '@/lib/utils';
 
 import { Badge } from '@/components/ui/badge';
@@ -186,30 +187,70 @@ export function KitchenOrderCard({ order }: KitchenOrderCardProps) {
       <div className="py-3 space-y-3 mb-4 border-t border-b border-border/50 border-dashed">
         {order.items
           .filter(item => item.menuItem.type === 'food' || !item.menuItem.type) // Show only Food
-          .map((item, index) => (
-            <div key={`${item.menuItem.id}-${index}`} className="flex items-start gap-3 group/item">
-              <span className="text-xl bg-secondary/30 w-8 h-8 flex items-center justify-center rounded-lg shadow-sm border border-border/50">
-                {item.menuItem.emoji}
-              </span>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="font-medium text-sm text-foreground/90 group-hover/item:text-foreground transition-colors">
-                      {item.menuItem.name}
+          .map((item, index) => {
+            const { globalAddons } = useMenuStore.getState();
+
+            // Helper to find category for a flavor
+            const getFlavorCategory = (flavorName: string): string => {
+              // Check item specific flavors
+              if (Array.isArray(item.menuItem.flavors)) {
+                for (const section of item.menuItem.flavors as FlavorSection[]) {
+                  if (typeof section === 'object' && section.options) {
+                    const found = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                    if (found) return section.name;
+                  }
+                }
+              }
+
+              // Check global addons
+              for (const section of globalAddons) {
+                const found = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
+                if (found) return section.name;
+              }
+
+              return 'Add-ons'; // Default
+            };
+
+            // Group flavors by category
+            const groupedFlavors: Record<string, string[]> = {};
+            if (item.selectedFlavors) {
+              item.selectedFlavors.forEach(flavor => {
+                const category = getFlavorCategory(flavor);
+                if (!groupedFlavors[category]) groupedFlavors[category] = [];
+                groupedFlavors[category].push(flavor);
+              });
+            }
+
+            return (
+              <div key={`${item.menuItem.id}-${index}`} className="flex items-start gap-3 group/item">
+                <span className="text-xl bg-secondary/30 w-8 h-8 flex items-center justify-center rounded-lg shadow-sm border border-border/50">
+                  {item.menuItem.emoji}
+                </span>
+                <div className="flex-1">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="font-medium text-sm text-foreground/90 group-hover/item:text-foreground transition-colors">
+                        {item.menuItem.name}
+                      </span>
+                      {Object.entries(groupedFlavors).map(([category, flavors]) => (
+                        <div key={category} className="mt-1">
+                          <span className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-wider block mb-0.5">
+                            {category}:
+                          </span>
+                          <p className="text-xs text-foreground/80 font-medium pl-1 border-l-2 border-primary/20">
+                            {flavors.join(', ')}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                    <span className="font-bold text-sm bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[11px] ml-2">
+                      x{item.quantity}
                     </span>
-                    {item.selectedFlavors && item.selectedFlavors.length > 0 && (
-                      <p className="text-xs text-muted-foreground/80 font-medium">
-                        + {item.selectedFlavors.join(', ')}
-                      </p>
-                    )}
                   </div>
-                  <span className="font-bold text-sm bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[11px] ml-2">
-                    x{item.quantity}
-                  </span>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}}
       </div>
 
       <div className="relative z-10">
