@@ -432,8 +432,8 @@ export const useOrderStore = create<OrderState>()(
                 }
               }
 
-              // 2. Check Global Addons (if drink and not found yet)
-              if (priceFound === 0 && item.menuItem.type === 'drink') {
+              // 2. Check Global Addons (if not found yet)
+              if (priceFound === 0) {
                 for (const section of globalAddons) {
                   const option = section.options.find(opt => (typeof opt === 'string' ? opt : opt.name) === flavorName);
                   if (option && typeof option !== 'string' && option.price) {

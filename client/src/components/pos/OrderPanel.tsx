@@ -108,7 +108,7 @@ export function OrderPanel() {
                 >
                   <span className="text-xl">{orderItem.menuItem.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{orderItem.menuItem.name}</p>
+                    <p className="font-medium text-sm break-words whitespace-normal leading-tight">{orderItem.menuItem.name}</p>
                     {orderItem.selectedFlavors && orderItem.selectedFlavors.length > 0 && (
                       <p className="text-xs text-muted-foreground truncate">
                         {orderItem.selectedFlavors.join(', ')}
