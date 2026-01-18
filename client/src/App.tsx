@@ -29,6 +29,18 @@ const App = () => {
 
   useEffect(() => {
     initTheme();
+
+    // Global Error Handler for Lazy Loading Chunk Failures (Vercel deployments)
+    const handleChunkError = (event: ErrorEvent) => {
+      const message = event.message?.toLowerCase();
+      if (message && (message.includes('loading dynamically imported module') || message.includes('importing a module script'))) {
+        console.warn('Chunk load error detected. Reloading page...');
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener('error', handleChunkError);
+    return () => window.removeEventListener('error', handleChunkError);
   }, [initTheme]);
 
   return (
