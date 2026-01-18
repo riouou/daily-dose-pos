@@ -214,7 +214,7 @@ export const createOrderRouter = (io) => {
                     beeperNumber || null,
                     isTest || false,
                     paymentMethod || null,
-                    amountTendered ? 'paid' : 'pending',
+                    paymentStatus,
                     amountTendered || 0,
                     changeAmount || 0,
                     req.body.orderType || 'dine-in'
