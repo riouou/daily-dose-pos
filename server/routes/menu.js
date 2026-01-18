@@ -52,8 +52,8 @@ export const createMenuRouter = (io) => {
 
         try {
             await query(
-                `INSERT INTO menu_items (id, name, price, category, is_available, image_url, items, flavors, max_flavors, type) 
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+                `INSERT INTO menu_items (id, name, price, category, is_available, image_url, flavors, max_flavors, type) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
                 [
                     newItem.id,
                     newItem.name,
@@ -61,7 +61,6 @@ export const createMenuRouter = (io) => {
                     newItem.category,
                     newItem.isAvailable !== undefined ? newItem.isAvailable : true,
                     newItem.image,
-                    JSON.stringify(newItem.items || []), // For combos, if any
                     JSON.stringify(newItem.flavors || []),
                     newItem.maxFlavors || 1,
                     newItem.type || 'food'
@@ -90,7 +89,6 @@ export const createMenuRouter = (io) => {
             if (updates.category !== undefined) { fields.push(`category = $${idx++}`); values.push(updates.category); }
             if (updates.isAvailable !== undefined) { fields.push(`is_available = $${idx++}`); values.push(updates.isAvailable); }
             if (updates.image !== undefined) { fields.push(`image_url = $${idx++}`); values.push(updates.image); }
-            if (updates.items !== undefined) { fields.push(`items = $${idx++}`); values.push(JSON.stringify(updates.items)); }
             if (updates.flavors !== undefined) { fields.push(`flavors = $${idx++}`); values.push(JSON.stringify(updates.flavors)); }
             if (updates.maxFlavors !== undefined) { fields.push(`max_flavors = $${idx++}`); values.push(updates.maxFlavors); }
             if (updates.type !== undefined) { fields.push(`type = $${idx++}`); values.push(updates.type); }
